@@ -8,7 +8,10 @@ fn total_score(input: &str) -> usize {
 }
 
 fn score(opponent: RockPaperScissors, me: RockPaperScissors) -> usize {
-    1 + me as usize + (4 + me as usize - opponent as usize) % 3 * 3
+    let choice_score = 1 + me as usize;
+    let outcome_score = (4 + me as usize - opponent as usize) % 3 * 3;
+
+    choice_score + outcome_score
 }
 
 fn main() {
