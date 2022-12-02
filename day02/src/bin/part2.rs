@@ -1,4 +1,4 @@
-use day02::{input, RockPaperScissors};
+use day02::{input, RockPaperScissors, Outcome};
 
 fn total_score(input: &str) -> usize {
     input
@@ -7,7 +7,7 @@ fn total_score(input: &str) -> usize {
         .sum()
 }
 
-fn score(opponent: RockPaperScissors, me: RockPaperScissors) -> usize {
+fn score(opponent: RockPaperScissors, me: Outcome) -> usize {
     (2 + me as usize + opponent as usize) % 3 + 1 + me as usize * 3
 }
 
@@ -23,16 +23,17 @@ fn test_example() {
 #[test]
 fn test_score() {
     use RockPaperScissors::*;
+    use Outcome::*;
 
-    assert_eq!(3 + 0, score(Rock, "X".into()));
-    assert_eq!(1 + 0, score(Paper, "X".into()));
-    assert_eq!(2 + 0, score(Scissors, "X".into()));
+    assert_eq!(3 + 0, score(Rock, Lose));
+    assert_eq!(1 + 0, score(Paper, Lose));
+    assert_eq!(2 + 0, score(Scissors, Lose));
 
-    assert_eq!(1 + 3, score(Rock, "Y".into()));
-    assert_eq!(2 + 3, score(Paper, "Y".into()));
-    assert_eq!(3 + 3, score(Scissors, "Y".into()));
+    assert_eq!(1 + 3, score(Rock, Draw));
+    assert_eq!(2 + 3, score(Paper, Draw));
+    assert_eq!(3 + 3, score(Scissors, Draw));
 
-    assert_eq!(2 + 6, score(Rock, "Z".into()));
-    assert_eq!(3 + 6, score(Paper, "Z".into()));
-    assert_eq!(1 + 6, score(Scissors, "Z".into()));
+    assert_eq!(2 + 6, score(Rock, Win));
+    assert_eq!(3 + 6, score(Paper, Win));
+    assert_eq!(1 + 6, score(Scissors, Win));
 }

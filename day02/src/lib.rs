@@ -18,3 +18,22 @@ impl From<&str> for RockPaperScissors {
         }
     }
 }
+
+#[repr(usize)]
+#[derive(Debug, Clone, Copy)]
+pub enum Outcome {
+    Lose,
+    Draw,
+    Win,
+}
+
+impl From<&str> for Outcome {
+    fn from(s: &str) -> Self {
+        match s {
+            "X" => Self::Lose,
+            "Y" => Self::Draw,
+            "Z" => Self::Win,
+            _ => panic!("Wrong input!"),
+        }
+    }
+}
