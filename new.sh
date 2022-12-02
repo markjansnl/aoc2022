@@ -16,9 +16,9 @@ cd $FOLDER/src
 echo 'pub mod input;' > lib.rs
 mkdir input
 cat > input/mod.rs << EOF
-pub const EXAMPLE: &'static str = include_str!("example.txt");
+pub const EXAMPLE: &str = include_str!("example.txt");
 
-pub const USER: &'static str = include_str!("user.txt");
+pub const USER: &str = include_str!("user.txt");
 
 EOF
 touch input/example.txt
