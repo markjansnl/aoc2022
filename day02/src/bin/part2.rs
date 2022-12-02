@@ -1,4 +1,4 @@
-use day02::{input, RockPaperScissors, Outcome};
+use day02::{input, Outcome, RockPaperScissors};
 
 fn total_score(input: &str) -> usize {
     input
@@ -10,7 +10,7 @@ fn total_score(input: &str) -> usize {
 fn score(opponent: RockPaperScissors, me: Outcome) -> usize {
     let choice_score = (2 + me as usize + opponent as usize) % 3 + 1;
     let outcome_score = me as usize * 3;
-    
+
     choice_score + outcome_score
 }
 
@@ -25,8 +25,8 @@ fn test_example() {
 
 #[test]
 fn test_score() {
-    use RockPaperScissors::*;
     use Outcome::*;
+    use RockPaperScissors::*;
 
     assert_eq!(3 + 0, score(Rock, Lose));
     assert_eq!(1 + 0, score(Paper, Lose));
