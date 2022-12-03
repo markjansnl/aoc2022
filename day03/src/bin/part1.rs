@@ -5,10 +5,10 @@ fn priority_sum(input: &str) -> usize {
     input
         .lines()
         .map(|line| {
-            let (left, right) = line.split_at(line.len() / 2);
-            left.bytes()
+            line[..line.len() / 2]
+                .bytes()
                 .collect::<HashSet<_>>()
-                .intersection(&right.bytes().collect())
+                .intersection(&line[line.len() / 2..].bytes().collect())
                 .map(|&dup| (dup as usize - 38) % 58)
                 .next()
                 .unwrap()
