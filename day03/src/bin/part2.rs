@@ -10,10 +10,7 @@ fn priority_sum(input: &str) -> usize {
         .array_chunks()
         .map(|[rucksack1, rucksack2, rucksack3]| {
             rucksack1
-                .intersection(&rucksack2)
-                .copied()
-                .collect::<HashSet<_>>()
-                .intersection(&rucksack3)
+                .intersection(&rucksack2.intersection(&rucksack3).copied().collect())
                 .map(|&unique| {
                     if unique >= 97 {
                         unique as usize - 96
