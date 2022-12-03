@@ -1,6 +1,6 @@
 #![feature(iter_array_chunks)]
 
-use day03::input;
+use day03::{input, unique_to_priority};
 use std::collections::HashSet;
 
 fn priority_sum(input: &str) -> usize {
@@ -11,13 +11,7 @@ fn priority_sum(input: &str) -> usize {
         .map(|[rucksack1, rucksack2, rucksack3]| {
             rucksack1
                 .intersection(&rucksack2.intersection(&rucksack3).copied().collect())
-                .map(|&unique| {
-                    if unique >= 97 {
-                        unique as usize - 96
-                    } else {
-                        unique as usize - 38
-                    }
-                })
+                .map(unique_to_priority)
                 .next()
                 .unwrap()
         })
