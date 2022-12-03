@@ -8,7 +8,7 @@ fn priority_sum(input: &str) -> usize {
             let (left, right) = line.split_at(line.len() / 2);
             left.bytes()
                 .collect::<HashSet<_>>()
-                .intersection(&right.bytes().collect::<HashSet<_>>())
+                .intersection(&right.bytes().collect())
                 .map(unique_to_priority)
                 .next()
                 .unwrap()
