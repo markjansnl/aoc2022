@@ -14,13 +14,13 @@ FOLDER=day$DAY_LONG
 cargo new --lib $FOLDER
 cd $FOLDER/src
 echo 'pub mod input;' > lib.rs
-mkdir input
-cat > input/mod.rs << EOF
-pub const EXAMPLE: &str = include_str!("example.txt");
+cat > input.rs << EOF
+pub const EXAMPLE: &str = include_str!("input/example.txt");
 
-pub const USER: &str = include_str!("user.txt");
+pub const USER: &str = include_str!("input/user.txt");
 
 EOF
+mkdir input
 touch input/example.txt
 curl "https://adventofcode.com/2022/day/$DAY_SHORT/input" --cookie "session=$SESSION" | perl -pe 'chomp if eof' > input/user.txt
 mkdir bin
