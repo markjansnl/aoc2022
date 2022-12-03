@@ -11,7 +11,7 @@ fn priority_sum(input: &str) -> usize {
         .map(|[rucksack1, rucksack2, rucksack3]| {
             rucksack1
                 .intersection(&rucksack2.intersection(&rucksack3).copied().collect())
-                .map(|&dup| (dup as usize - 38) % 58)
+                .map(|&duplicate| (duplicate as usize - 38) % 58)
                 .next()
                 .unwrap()
         })

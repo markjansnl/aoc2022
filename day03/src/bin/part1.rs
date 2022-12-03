@@ -9,7 +9,7 @@ fn priority_sum(input: &str) -> usize {
                 .bytes()
                 .collect::<HashSet<_>>()
                 .intersection(&line[line.len() / 2..].bytes().collect())
-                .map(|&dup| (dup as usize - 38) % 58)
+                .map(|&duplicate| (duplicate as usize - 38) % 58)
                 .next()
                 .unwrap()
         })
