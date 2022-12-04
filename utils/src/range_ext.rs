@@ -33,20 +33,24 @@ pub trait RangeExt {
 }
 
 impl<Idx: PartialOrd<Idx>> RangeExt for Range<Idx> {
+    #[inline]
     fn fully_contains(&self, item: &Self) -> bool {
         self.contains(&item.start) && self.contains(&item.end)
     }
 
+    #[inline]
     fn overlaps(&self, item: &Self) -> bool {
         self.contains(&item.start) || self.contains(&item.end)
     }
 }
 
 impl<Idx: PartialOrd<Idx>> RangeExt for RangeInclusive<Idx> {
+    #[inline]
     fn fully_contains(&self, item: &Self) -> bool {
         self.contains(item.start()) && self.contains(item.end())
     }
 
+    #[inline]
     fn overlaps(&self, item: &Self) -> bool {
         self.contains(item.start()) || self.contains(item.end())
     }
