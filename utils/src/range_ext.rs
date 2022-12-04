@@ -6,12 +6,12 @@ pub trait RangeExt {
      *
      * Example:
      * ```
-     * use aoc04::FullyContains;
+     * use utils::RangeExt;
      *
      * let lhs = 1..=6;
-     * assert_eq!(true, lhs.fully_contains(2..=4));
-     * assert_eq!(false, lhs.fully_contains(4..=8));
-     * assert_eq!(false, lhs.fully_contains(8..=9));
+     * assert_eq!(true, lhs.fully_contains(&(2..=4)));
+     * assert_eq!(false, lhs.fully_contains(&(4..=8)));
+     * assert_eq!(false, lhs.fully_contains(&(8..=9)));
      * ```
      */
     fn fully_contains(&self, item: &Self) -> bool;
@@ -21,12 +21,12 @@ pub trait RangeExt {
      *
      * Example:
      * ```
-     * use aoc04::Overlaps;
+     * use utils::RangeExt;
      *
      * let lhs = 1..=6;
-     * assert_eq!(true, lhs.overlaps(2..=4));
-     * assert_eq!(true, lhs.overlaps(4..=8));
-     * assert_eq!(false, lhs.overlaps(8..=9));
+     * assert_eq!(true, lhs.overlaps(&(2..=4)));
+     * assert_eq!(true, lhs.overlaps(&(4..=8)));
+     * assert_eq!(false, lhs.overlaps(&(8..=9)));
      * ```
      */
     fn overlaps(&self, item: &Self) -> bool;
