@@ -1,7 +1,10 @@
-use day04::{count, input, Overlaps};
+use std::ops::RangeInclusive;
+
+use day04::{count, input};
+use utils::RangeExt;
 
 fn count_overlaps(input: &str) -> usize {
-    count::<usize, _>(input, Overlaps::overlaps)
+    count(input, RangeInclusive::overlaps)
 }
 
 fn main() {

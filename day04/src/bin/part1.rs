@@ -1,7 +1,10 @@
-use day04::{count, input, FullyContains};
+use std::ops::RangeInclusive;
+
+use day04::{count, input};
+use utils::RangeExt;
 
 fn count_fully_contains(input: &str) -> usize {
-    count::<usize, _>(input, FullyContains::fully_contains)
+    count(input, RangeInclusive::fully_contains)
 }
 
 fn main() {
