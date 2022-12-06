@@ -1,16 +1,7 @@
-use day05::{input, Stacks};
+use day05::{input, CrateMover9000};
 
 fn top_crates(input: &str) -> String {
-    let mut lines = input.lines();
-    let mut stacks = Stacks::from(&mut lines);
-
-    lines.next().unwrap();
-
-    for line in lines {
-        stacks.do_move_9000(line);
-    }
-
-    stacks.top_crates()
+    day05::top_crates::<CrateMover9000>(input)
 }
 
 fn main() {
