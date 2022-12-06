@@ -19,50 +19,6 @@ pub struct Stack {
     stack: [u8; STACK_SIZE],
 }
 
-impl Stack {
-    #[inline]
-    pub fn new() -> Self {
-        Stack {
-            insert_index: INPUT_SIZE - 1,
-            stack_index: INPUT_SIZE,
-            stack: [0; STACK_SIZE],
-        }
-    }
-
-    #[inline]
-    pub fn insert(&mut self, byte: u8) {
-        if byte != b' ' {
-            self.stack[self.insert_index] = byte;
-            self.insert_index -= 1;
-        }
-    }
-
-    #[inline]
-    pub fn push(&mut self, byte: u8) {
-        self.stack[self.stack_index] = byte;
-        self.stack_index += 1;
-    }
-
-    #[inline]
-    pub fn pop(&mut self) -> u8 {
-        self.stack_index -= 1;
-        self.stack[self.stack_index]
-    }
-
-    #[inline]
-    pub fn popn_into(&mut self, n: usize, stack: &mut Stack) {
-        self.stack_index -= n;
-        stack.stack[stack.stack_index..stack.stack_index + n]
-            .copy_from_slice(&self.stack[self.stack_index..self.stack_index + n]);
-        stack.stack_index += n;
-    }
-
-    #[inline]
-    pub fn peek(&self) -> Option<u8> {
-        (self.stack_index - self.insert_index > 1).then_some(self.stack[self.stack_index - 1])
-    }
-}
-
 type CrateMove = [usize; 3];
 
 impl From<&mut Lines<'_>> for Stacks {
@@ -78,7 +34,7 @@ impl From<&mut Lines<'_>> for Stacks {
             .map(|mut line_iter| (*line_iter.peek().unwrap(), line_iter))
             .take_while(|(first, _)| first != &b'1')
             .fold(Stacks::new(), |stacks, (_, line_iter)| {
-                for (stack_index, byte) in line_iter.enumerate() {
+                for (stack_index, byte) in line_iter.enumerate().filter(|(_, byte)| byte != &b' ') {
                     stacks.0[stack_index].borrow_mut().insert(byte);
                 }
                 stacks
@@ -133,14 +89,46 @@ impl Stacks {
     }
 }
 
-#[inline]
-fn parse_crate_move(line: &str) -> CrateMove {
-    line.split(' ')
-        .enumerate()
-        .filter_map(|(i, s)| (i % 2 == 1).then(|| s.parse::<usize>().unwrap()))
-        .array_chunks()
-        .next()
-        .unwrap()
+impl Stack {
+    #[inline]
+    pub fn new() -> Self {
+        Stack {
+            insert_index: INPUT_SIZE - 1,
+            stack_index: INPUT_SIZE,
+            stack: [0; STACK_SIZE],
+        }
+    }
+
+    #[inline]
+    pub fn insert(&mut self, byte: u8) {
+        self.stack[self.insert_index] = byte;
+        self.insert_index -= 1;
+    }
+
+    #[inline]
+    pub fn push(&mut self, byte: u8) {
+        self.stack[self.stack_index] = byte;
+        self.stack_index += 1;
+    }
+
+    #[inline]
+    pub fn pop(&mut self) -> u8 {
+        self.stack_index -= 1;
+        self.stack[self.stack_index]
+    }
+
+    #[inline]
+    pub fn popn_into(&mut self, n: usize, stack: &mut Stack) {
+        self.stack_index -= n;
+        stack.stack[stack.stack_index..stack.stack_index + n]
+            .copy_from_slice(&self.stack[self.stack_index..self.stack_index + n]);
+        stack.stack_index += n;
+    }
+
+    #[inline]
+    pub fn peek(&self) -> Option<u8> {
+        (self.stack_index - self.insert_index > 1).then_some(self.stack[self.stack_index - 1])
+    }
 }
 
 pub trait CrateMover {
@@ -163,6 +151,16 @@ impl CrateMover for CrateMover9001 {
     fn move_crates(stacks: &mut Stacks, crate_move: CrateMove) {
         stacks.move_crates_9001(crate_move);
     }
+}
+
+#[inline]
+fn parse_crate_move(line: &str) -> CrateMove {
+    line.split(' ')
+        .enumerate()
+        .filter_map(|(i, s)| (i % 2 == 1).then(|| s.parse::<usize>().unwrap()))
+        .array_chunks()
+        .next()
+        .unwrap()
 }
 
 #[inline]
