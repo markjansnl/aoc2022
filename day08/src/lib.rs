@@ -1,3 +1,8 @@
+use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
+
+use array_init::array_init;
+use rayon::prelude::*;
+
 pub mod input;
 
 const GRID_SIZE: usize = 100 * 100;
@@ -5,8 +10,8 @@ const GRID_SIZE: usize = 100 * 100;
 pub struct Grid {
     size: isize,
     tree_length: [i8; GRID_SIZE],
-    visible: [bool; GRID_SIZE],
-    scenic_score: [isize; GRID_SIZE],
+    visible: [AtomicBool; GRID_SIZE],
+    scenic_score: [AtomicIsize; GRID_SIZE],
 }
 
 impl From<&str> for Grid {
@@ -15,8 +20,8 @@ impl From<&str> for Grid {
         let mut grid = Grid {
             size: 0,
             tree_length: [0; GRID_SIZE],
-            visible: [false; GRID_SIZE],
-            scenic_score: [1; GRID_SIZE],
+            visible: array_init(|_| AtomicBool::new(false)),
+            scenic_score: array_init(|_| AtomicIsize::new(1)),
         };
 
         let mut index = 0;
@@ -43,7 +48,7 @@ impl Grid {
         Direction {
             start: 0,
             delta1: 1,
-            delta2: 1,
+            delta2: 0,
         }
     }
 
@@ -52,7 +57,7 @@ impl Grid {
         Direction {
             start: self.size * self.size - 1,
             delta1: -1,
-            delta2: -1,
+            delta2: 0,
         }
     }
 
@@ -61,7 +66,7 @@ impl Grid {
         Direction {
             start: 0,
             delta1: self.size,
-            delta2: -1 * (self.size - 1) * self.size + 1,
+            delta2: -self.size * self.size + 1,
         }
     }
 
@@ -69,22 +74,21 @@ impl Grid {
     fn north(&self) -> Direction {
         Direction {
             start: self.size * self.size - 1,
-            delta1: -1 * self.size,
-            delta2: (self.size - 1) * self.size - 1,
+            delta1: -self.size,
+            delta2: self.size * self.size - 1,
         }
     }
 
     #[inline]
     pub fn check_visibility(&mut self) {
-        self.check_visible(self.east());
-        self.check_visible(self.west());
-        self.check_visible(self.south());
-        self.check_visible(self.north());
+        [self.east(), self.west(), self.south(), self.north()]
+            .into_iter()
+            .for_each(|direction| self.check_visible(direction));
     }
 
     #[inline]
     fn check_visible(
-        &mut self,
+        &self,
         Direction {
             start,
             delta1,
@@ -99,11 +103,10 @@ impl Grid {
                 let tree_length = self.tree_length[index as usize];
                 if tree_length > largest {
                     largest = tree_length;
-                    self.visible[index as usize] = true;
+                    self.visible[index as usize].store(true, Ordering::Relaxed);
                 }
                 index += delta1;
             }
-            index -= delta1;
             index += delta2;
         }
     }
@@ -111,20 +114,22 @@ impl Grid {
     #[inline]
     pub fn count_visible(mut self) -> usize {
         self.check_visibility();
-        self.visible.iter().filter(|visible| **visible).count()
+        self.visible
+            .iter()
+            .filter(|visible| visible.load(Ordering::Relaxed))
+            .count()
     }
 
     #[inline]
     pub fn calc_scenic_score(&mut self) {
-        self.calc_scenic_score_in_direction(self.east());
-        self.calc_scenic_score_in_direction(self.west());
-        self.calc_scenic_score_in_direction(self.south());
-        self.calc_scenic_score_in_direction(self.north());
+        [self.east(), self.west(), self.south(), self.north()]
+            .into_par_iter()
+            .for_each(|direction| self.calc_scenic_score_in_direction(direction));
     }
 
     #[inline]
     fn calc_scenic_score_in_direction(
-        &mut self,
+        &self,
         Direction {
             start,
             delta1,
@@ -132,18 +137,20 @@ impl Grid {
         }: Direction,
     ) {
         let mut index = start;
-        let mut last_tree_length;
         for _ in 0..self.size {
-            last_tree_length = [0; 10];
+            let mut last_tree_length = [0; 10];
             for row_index in 0..self.size {
                 let tree_length = self.tree_length[index as usize];
-                self.scenic_score[index as usize] *= row_index - last_tree_length[tree_length as usize];
+                self.scenic_score[index as usize]
+                    .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                        Some(current * (row_index - last_tree_length[tree_length as usize]))
+                    })
+                    .unwrap();
                 for last_tree_length_index in 0..=tree_length {
                     last_tree_length[last_tree_length_index as usize] = row_index;
                 }
                 index += delta1;
             }
-            index -= delta1;
             index += delta2;
         }
     }
@@ -151,6 +158,10 @@ impl Grid {
     #[inline]
     pub fn max_scenic_score(mut self) -> usize {
         self.calc_scenic_score();
-        self.scenic_score.into_iter().max().unwrap() as usize
+        self.scenic_score
+            .into_iter()
+            .map(|mut scenic_score| *scenic_score.get_mut())
+            .max()
+            .unwrap() as usize
     }
 }
