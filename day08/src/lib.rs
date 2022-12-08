@@ -1,6 +1,3 @@
-use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
-
-use array_init::array_init;
 use rayon::prelude::*;
 
 pub mod input;
@@ -10,8 +7,6 @@ const GRID_SIZE: usize = 100 * 100;
 pub struct Grid {
     size: isize,
     tree_length: [i8; GRID_SIZE],
-    visible: [AtomicBool; GRID_SIZE],
-    scenic_score: [AtomicIsize; GRID_SIZE],
 }
 
 impl From<&str> for Grid {
@@ -20,8 +15,6 @@ impl From<&str> for Grid {
         let mut grid = Grid {
             size: 0,
             tree_length: [0; GRID_SIZE],
-            visible: array_init(|_| AtomicBool::new(false)),
-            scenic_score: array_init(|_| AtomicIsize::new(1)),
         };
 
         let mut index = 0;
@@ -80,20 +73,25 @@ impl Grid {
     }
 
     #[inline]
-    pub fn check_visibility(&mut self) {
-        [self.east(), self.west(), self.south(), self.north()]
-            .into_iter()
-            .for_each(|direction| self.check_visible(direction));
+    pub fn count_visible(mut self) -> usize {
+        let mut visible = [false; GRID_SIZE];
+
+        for direction in [self.east(), self.west(), self.south(), self.north()] {
+            self.check_visible(direction, &mut visible)
+        }
+
+        visible.iter().filter(|visible| **visible).count()
     }
 
     #[inline]
     fn check_visible(
-        &self,
+        &mut self,
         Direction {
             start,
             delta1,
             delta2,
         }: Direction,
+        visible: &mut [bool; GRID_SIZE],
     ) {
         let mut index = start;
         let mut largest;
@@ -103,7 +101,7 @@ impl Grid {
                 let tree_length = self.tree_length[index as usize];
                 if tree_length > largest {
                     largest = tree_length;
-                    self.visible[index as usize].store(true, Ordering::Relaxed);
+                    visible[index as usize] = true;
                 }
                 index += delta1;
             }
@@ -112,19 +110,20 @@ impl Grid {
     }
 
     #[inline]
-    pub fn count_visible(mut self) -> usize {
-        self.check_visibility();
-        self.visible
-            .iter()
-            .filter(|visible| visible.load(Ordering::Relaxed))
-            .count()
-    }
-
-    #[inline]
-    pub fn calc_scenic_score(&mut self) {
-        [self.east(), self.west(), self.south(), self.north()]
+    pub fn max_scenic_score(&mut self) -> usize {
+        let scenic_scores = [self.east(), self.west(), self.south(), self.north()]
             .into_par_iter()
-            .for_each(|direction| self.calc_scenic_score_in_direction(direction));
+            .map(|direction| self.calc_scenic_score_in_direction(direction))
+            .collect::<Vec<_>>();
+        (0..self.size * self.size)
+            .map(|index| {
+                scenic_scores[0][index as usize]
+                    * scenic_scores[1][index as usize]
+                    * scenic_scores[2][index as usize]
+                    * scenic_scores[3][index as usize]
+            })
+            .max()
+            .unwrap() as usize
     }
 
     #[inline]
@@ -135,17 +134,14 @@ impl Grid {
             delta1,
             delta2,
         }: Direction,
-    ) {
+    ) -> [isize; GRID_SIZE] {
         let mut index = start;
+        let mut scenic_score = [1isize; GRID_SIZE];
         for _ in 0..self.size {
             let mut last_tree_length = [0; 10];
             for row_index in 0..self.size {
                 let tree_length = self.tree_length[index as usize];
-                self.scenic_score[index as usize]
-                    .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
-                        Some(current * (row_index - last_tree_length[tree_length as usize]))
-                    })
-                    .unwrap();
+                scenic_score[index as usize] *= row_index - last_tree_length[tree_length as usize];
                 for last_tree_length_index in 0..=tree_length {
                     last_tree_length[last_tree_length_index as usize] = row_index;
                 }
@@ -153,15 +149,6 @@ impl Grid {
             }
             index += delta2;
         }
-    }
-
-    #[inline]
-    pub fn max_scenic_score(mut self) -> usize {
-        self.calc_scenic_score();
-        self.scenic_score
-            .into_iter()
-            .map(|mut scenic_score| *scenic_score.get_mut())
-            .max()
-            .unwrap() as usize
+        scenic_score
     }
 }
