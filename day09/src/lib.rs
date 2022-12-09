@@ -6,8 +6,8 @@ mod rope;
 pub use motion::*;
 pub use rope::*;
 
-pub fn count_tail_positions(input: &str, n: usize) -> usize {
-    let mut rope = Rope::new(input, n);
+pub fn count_tail_positions(input: &str, knots_count: usize) -> usize {
+    let mut rope = Rope::new(input, knots_count);
 
     for _ in rope.by_ref() {}
 

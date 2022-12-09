@@ -110,11 +110,11 @@ impl Iterator for Rope {
 }
 
 impl Rope {
-    pub fn new(input: &str, n: usize) -> Self {
+    pub fn new(input: &str, knots_count: usize) -> Self {
         Self {
             motions: input.into(),
             boundaries: Boundaries::default(),
-            knots: repeat(Position::default()).take(n).collect(),
+            knots: repeat(Position::default()).take(knots_count).collect(),
             knot_index: 0,
             tail_positions: [Position::default()].into_iter().collect(),
         }
