@@ -68,8 +68,8 @@ pub struct Rope {
 }
 
 pub struct KnotMoveResult {
-    knot_index: usize,
-    position: Position,
+    pub index: usize,
+    pub position: Position,
 }
 
 impl Iterator for Rope {
@@ -100,7 +100,7 @@ impl Iterator for Rope {
             }
         }
         Some(KnotMoveResult {
-            knot_index: i,
+            index: i,
             position: self.knots[i],
         })
     }
