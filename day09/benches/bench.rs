@@ -1,15 +1,15 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use day09::{input, count_tail_positions, count_10th_tail_positions};
+use day09::{count_tail_positions, input};
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("day09");
 
     group.bench_function("part1", |b| {
-        b.iter(|| count_tail_positions(black_box(input::USER)))
+        b.iter(|| count_tail_positions(black_box(input::USER), 2))
     });
 
     group.bench_function("part2", |b| {
-        b.iter(|| count_10th_tail_positions(black_box(input::USER)))
+        b.iter(|| count_tail_positions(black_box(input::USER), 10))
     });
 
     group.finish();

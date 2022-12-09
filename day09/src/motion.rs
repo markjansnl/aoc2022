@@ -40,7 +40,7 @@ pub struct MotionIterator {
 impl From<&str> for MotionIterator {
     fn from(input: &str) -> Self {
         Self {
-            motions: input.lines().map(|line| line.into()).collect()
+            motions: input.lines().map(|line| line.into()).collect(),
         }
     }
 }

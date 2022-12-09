@@ -1,7 +1,7 @@
 use day09::input;
 
 fn count_tail_positions(input: &str) -> usize {
-    day09::count_tail_positions(input)
+    day09::count_tail_positions(input, 2)
 }
 
 fn main() {
