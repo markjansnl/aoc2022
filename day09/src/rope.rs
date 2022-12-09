@@ -70,19 +70,21 @@ pub struct Rope {
 pub struct KnotMoveResult {
     pub index: usize,
     pub position: Position,
+    pub boundary_expanded: Option<Direction>,
 }
 
 impl Iterator for Rope {
     type Item = KnotMoveResult;
 
     fn next(&mut self) -> Option<Self::Item> {
+        let mut boundary_expanded = None;
         let i = self.knot_index;
         self.knot_index = (i + 1) % self.knots.len();
 
         if i == 0 {
             if let Some(direction) = self.motions.next() {
                 self.knots[0] = self.knots[0].step(&direction);
-                self.boundaries.expand(&self.knots[0]);
+                boundary_expanded = self.boundaries.expand(&self.knots[0]);
             } else {
                 return None;
             }
@@ -102,6 +104,7 @@ impl Iterator for Rope {
         Some(KnotMoveResult {
             index: i,
             position: self.knots[i],
+            boundary_expanded,
         })
     }
 }
