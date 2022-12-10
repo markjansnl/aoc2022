@@ -1,0 +1,69 @@
+.App {
+  text-align: center;
+}
+
+.Grid {
+  position: relative;
+  left: 1rem;
+  top: 1rem;
+  width: 20rem;
+  height: 20rem;
+  border: 1px solid black;
+}
+
+.Rope {
+  position: absolute;
+  width: 0.4rem;
+  height: 2rem;
+  z-index: 1;
+  translate: 0.7rem 0.9rem;
+  transform-origin: 40% 0%;
+  transition: all 1s linear;
+}
+
+.Knot {
+  position: absolute;
+  width: 0.8rem;
+  z-index: 2;
+  translate: 0.5rem 0.5rem;
+  transition: all 1s linear;
+}
+
+.KnotEnd {
+  position: absolute;
+  width: 1rem;
+  z-index: 2;
+  translate: 0.5rem 0.5rem;
+  transform-origin: 38% 26%;
+  transition: all 1s linear;
+}
+
+.logo {
+  animation: logo-spin infinite 20s linear;
+  height: 40vmin;
+  pointer-events: none;
+}
+
+.header {
+  background-color: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: black;
+}
+
+.link {
+  color: #b318f0;
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
