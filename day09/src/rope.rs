@@ -4,8 +4,8 @@ use crate::motion::*;
 
 #[derive(Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Position {
-    x: isize,
-    y: isize,
+    pub x: isize,
+    pub y: isize,
 }
 
 impl Position {

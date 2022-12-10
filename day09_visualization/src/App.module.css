@@ -4,11 +4,8 @@
 
 .Grid {
   position: relative;
-  left: 1rem;
-  top: 1rem;
-  width: 20rem;
-  height: 20rem;
-  border: 1px solid black;
+  left: 30rem;
+  top: 30rem;
 }
 
 .Rope {
@@ -18,7 +15,7 @@
   z-index: 1;
   translate: 0.7rem 0.9rem;
   transform-origin: 40% 0%;
-  transition: all 1s linear;
+  transition: all 0.1s linear;
 }
 
 .Knot {
@@ -26,7 +23,7 @@
   width: 0.8rem;
   z-index: 2;
   translate: 0.5rem 0.5rem;
-  transition: all 1s linear;
+  transition: all 0.1s linear;
 }
 
 .KnotEnd {
@@ -35,7 +32,7 @@
   z-index: 2;
   translate: 0.5rem 0.5rem;
   transform-origin: 38% 26%;
-  transition: all 1s linear;
+  transition: all 0.1s linear;
 }
 
 .logo {

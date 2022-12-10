@@ -1,7 +1,6 @@
 import { Component, createEffect, createSignal, For, Index, onMount, Show } from 'solid-js';
-// import produce from "immer";
 import { createStore, produce } from 'solid-js/store';
-import { TransitionGroup } from "solid-transition-group";
+import init, { RopeModel } from "wasm";
 
 import rope from './assets/rope.png';
 import knot from './assets/knot.png';
@@ -10,6 +9,7 @@ import styles from './App.module.css';
 
 type KnotType = "middle" | "end";
 type Position = { x: number, y: number };
+type RopeModelType = RopeModel | undefined;
 type KnotsModel = {
   index: number,
   position: Position,
@@ -20,16 +20,18 @@ type KnotsModel = {
   ropeRotation?: number
 };
 
-const start_knots = [
-  { x: 2, y: 0 },
-  { x: 2, y: 1 },
-  { x: 2, y: 2 },
-  { x: 1, y: 3 },
-];
+const start_knots = new Array(10).fill({ x: 0, y: 0 });
 
 const App: Component = () => {
+  const [wasmLoaded, setWasmLoaded] = createSignal(false);
   const [knots, setKnots] = createSignal(start_knots);
   const [knotsModel, setKnotsModel] = createStore<Array<KnotsModel>>([]);
+
+  let ropeModel = undefined as RopeModelType;
+  init().then(() => {
+    ropeModel = new RopeModel();
+    setWasmLoaded(true);
+  });
 
   createEffect(() => setKnotsModel(produce(model => {
     while (knots().length > model.length) {
@@ -42,6 +44,7 @@ const App: Component = () => {
     model.forEach((knot, index) => {
       const prev = knots()[index - 1] || { x: 0, y: 0 };
       const next = knots()[index + 1] || { x: 0, y: 0 };
+
       knot.index = index;
       knot.position = knots()[index];
       knot.knotType = index == 0 || index == start_knots.length - 1 ? "end" : "middle" as KnotType;
@@ -56,39 +59,41 @@ const App: Component = () => {
     });
   })));
 
-  const reset = () => {
-    setKnots([]);
-    setKnots(start_knots);
-  }
+  // const reset = () => {
+  //   setKnots([]);
+  //   setKnots(start_knots);
+  // }
 
-  const moveLeft = () => setKnots(prev => [{ x: prev[0].x - 1, y: prev[0].y }, ...prev.slice(1, 4)]);
-  const moveMiddleRight = () => setKnots(prev => [...prev.slice(0, 2), { x: prev[2].x + 1, y: prev[2].y }, prev[3]]);
-  const moveRight = () => setKnots(prev => [...prev.slice(0, 3), { x: prev[3].x + 1, y: prev[3].y }]);
+  const start = () => setInterval(step, 100);
+
+  const step = () => {
+    const knot_result = ropeModel?.step();
+    if (knot_result) {
+      setKnots(prev => [...prev.slice(0, knot_result.index), knot_result.position, ...prev.slice(knot_result.index + 1, prev.length)]);
+    }
+  }
 
   return (
     <div class={styles.App}>
-      <button onClick={reset}>Reset</button>
-      <button onClick={moveLeft}>Left</button>
-      <button onClick={moveMiddleRight}>Middle Right</button>
-      <button onClick={moveRight}>Right</button>
-      <div class={styles.Grid}>
-        <For each={knotsModel}>{knot =>
-          <>
-            <Knot position={knot.position} type={knot.knotType} rotation={knot.knotRotation} />
-            <Show when={ knot.showRope }>
-              <Rope position={knot.position} rotation={knot.ropeRotation} length={knot.ropeLength} />
-            </Show>
-          </>
-        }</For>
-      </div>
+      <Show when={wasmLoaded()} fallback={<h3>Loading wasm module...</h3>}>
+      {/* <button onClick={reset} style={{ "margin-top": "1rem" }}>Reset</button> */}
+      <button onClick={start} style={{ "margin": "1rem" }}>Start</button>
+        <div class={styles.Grid}>
+          <For each={knotsModel}>{knot =>
+            <>
+              <Knot position={knot.position} type={knot.knotType} rotation={knot.knotRotation} />
+              <Show when={ knot.showRope }>
+                <Rope position={knot.position} rotation={knot.ropeRotation} length={knot.ropeLength} />
+              </Show>
+            </>
+          }</For>
+        </div>
+      </Show>
     </div>
   );
 };
 
 const Knot: Component<{ position: Position, type: KnotType, rotation: number}> = (props) => {
-  onMount(() => {
-    console.log("mounting knot");
-  });
   return (
     <img
       src={ props.type === "middle" ? knot : knotEnd }

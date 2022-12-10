@@ -6,6 +6,7 @@
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
+    "build:wasm": "cd wasm && wasm-pack build --target web --out-dir pkg",
     "serve": "vite preview"
   },
   "license": "MIT",
@@ -16,7 +17,6 @@
   },
   "dependencies": {
     "solid-js": "^1.5.1",
-    "immer": "^9.0.16",
-    "solid-transition-group": "0.0.12"
+    "wasm": "file:wasm/pkg"
   }
 }
