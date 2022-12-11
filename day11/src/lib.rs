@@ -2,7 +2,10 @@ use std::cell::RefCell;
 
 pub mod input;
 
-pub struct Monkies(Vec<RefCell<Monkey>>);
+pub struct Monkies {
+    monkies: Vec<RefCell<Monkey>>,
+    divisible_by_product: usize,
+}
 
 pub struct Monkey {
     items: Vec<Item>,
@@ -38,12 +41,20 @@ pub struct Test {
 
 impl From<&str> for Monkies {
     fn from(input: &str) -> Self {
-        Monkies(
-            input
-                .split("\n\n")
-                .map(|monkey_input| RefCell::new(monkey_input.into()))
-                .collect(),
-        )
+        let mut divisible_by_product = 1;
+        let monkies = input
+            .split("\n\n")
+            .map(|monkey_input| {
+                let monkey = Monkey::from(monkey_input);
+                divisible_by_product *= monkey.test.divisible_by;
+                RefCell::new(monkey)
+            })
+            .collect::<Vec<_>>();
+
+        Monkies {
+            monkies,
+            divisible_by_product,
+        }
     }
 }
 
@@ -116,28 +127,27 @@ impl From<[&str; 3]> for Test {
 
 impl Monkies {
     pub fn round(&self, get_borred: bool) {
-        let product: usize = self
-            .0
-            .iter()
-            .map(|monkey| monkey.borrow().test.divisible_by)
-            .product();
-        for monkey in &self.0 {
+        for monkey in &self.monkies {
             let mut monkey = monkey.borrow_mut();
             while let Some(mut item) = monkey.inspect() {
                 if get_borred {
                     monkey.get_borred(&mut item);
                 } else {
-                    item.worry_level %= product;
+                    self.manage_worry_levels(&mut item);
                 }
                 let throw_to = monkey.test.get_throw_to(&item);
-                self.0[throw_to].borrow_mut().catch(item);
+                self.monkies[throw_to].borrow_mut().catch(item);
             }
         }
     }
 
+    pub fn manage_worry_levels(&self, item: &mut Item) {
+        item.worry_level %= self.divisible_by_product;
+    }
+
     pub fn monkey_business(&self) -> usize {
         let mut items_inspected = self
-            .0
+            .monkies
             .iter()
             .map(|monkey| monkey.borrow().items_inspected)
             .collect::<Vec<_>>();
