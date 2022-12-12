@@ -1,15 +1,10 @@
-use day12::{input, HeightMap};
-
-fn fewest_steps(input: &str) -> usize {
-    let height_map = HeightMap::from(input);
-    height_map.fewest_steps(&height_map.start()).unwrap()
-}
+use day12::{input, part1};
 
 fn main() {
-    println!("{}", fewest_steps(input::USER));
+    println!("{}", part1(input::USER));
 }
 
 #[test]
 fn test_example() {
-    assert_eq!(31, fewest_steps(input::EXAMPLE));
+    assert_eq!(31, part1(input::EXAMPLE));
 }

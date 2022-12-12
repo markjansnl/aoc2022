@@ -1,4 +1,5 @@
 use pathfinding::prelude::*;
+use rayon::prelude::*;
 use std::collections::HashMap;
 
 pub mod input;
@@ -107,4 +108,20 @@ impl HeightMap {
     fn success(&self, position: &Position) -> bool {
         position == &self.end
     }
+}
+
+pub fn part1(input: &str) -> usize {
+    let height_map = HeightMap::from(input);
+    height_map.fewest_steps(&height_map.start()).unwrap()
+}
+
+pub fn part2(input: &str) -> usize {
+    let height_map = HeightMap::from(input);
+    height_map
+        .squares()
+        .into_par_iter()
+        .filter(|(_, square)| square == &'a')
+        .filter_map(|(start, _)| height_map.fewest_steps(&start))
+        .min()
+        .unwrap()
 }
