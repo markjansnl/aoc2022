@@ -6,9 +6,6 @@ import catcher from './assets/catcher.png';
 import monkey from './assets/monkey.png';
 import styles from './App.module.css';
 
-const SMALL_DELAY = 200;
-const THROW_DELAY = 500;
-
 type Model = {
   round: number,
   catcher_flipped: boolean,
@@ -28,12 +25,13 @@ type Item = {
   worryLevel: number
 };
 
-const delay = (d: number) => new Promise(resolve => setTimeout(resolve, d));
+const delay = (d: number) => d === 0 ? 0 : new Promise(resolve => setTimeout(resolve, d));
 
 const App: Component = () => {
   const [wasmLoaded, setWasmLoaded] = createSignal(false);
   const [showInput, setShowInput] = createSignal(true);
   const [input, setInput] = createSignal("");
+  const [speed, setSpeed] = createSignal(1);
   const [model, setModel] = createStore<Model>({
     round: 1,
     catcher_flipped: false,
@@ -46,6 +44,8 @@ const App: Component = () => {
     setWasmLoaded(true);
     setInput(example());
   });
+
+  const DELAY = () => Math.pow(3 - speed(), 2) * 100;
 
   const onStart = () => {
     setShowInput(false);
@@ -89,25 +89,32 @@ const App: Component = () => {
                 draft.items[model.monkies[monkeyIndex].items[i]].index = i;
               }
             }));
-            await delay(SMALL_DELAY);
+            await delay(DELAY());
 
             setModel(produce(draft => {
               draft.items[model.monkies[monkeyIndex].items[0]].worryLevel = keepAway.inspect();
               draft.monkies[monkeyIndex].itemsInspected++;
             }));
-            await delay(SMALL_DELAY);
+            await delay(0.5 * DELAY());
 
             setModel(produce(draft => draft.items[model.monkies[monkeyIndex].items[0]].worryLevel = keepAway.get_borred()));
-            await delay(SMALL_DELAY);
+            await delay(0.5 * DELAY());
 
+            let throwTo = 0;
+            let index = 0;
             setModel(produce(draft => {
-              const throwTo = keepAway.throw();
-              const index = draft.monkies[monkeyIndex].items.splice(0, 1)[0];
+              throwTo = keepAway.throw();
+              index = draft.monkies[monkeyIndex].items.splice(0, 1)[0];
               draft.monkies[throwTo].items.push(index);
               draft.items[index].pos = model.monkies[throwTo].pos;
+              draft.items[index].index = 0;
+            }));
+            await delay(DELAY());
+
+            setModel(produce(draft => {
               draft.items[index].index = model.monkies[throwTo].items.length;
             }));
-            await delay(THROW_DELAY);
+            await delay(DELAY());
           }
           keepAway.next();
         }
@@ -120,7 +127,7 @@ const App: Component = () => {
       <Show when={wasmLoaded()}>
         <Switch>
           <Match when={showInput()}>
-            <Input input={input} setInput={setInput} onStart={onStart} />
+            <Input input={input} setInput={setInput} speed={speed} setSpeed={setSpeed} onStart={onStart} />
           </Match>
           <Match when={!showInput()}>
             <RoundInfo round={model.round} />
@@ -132,7 +139,7 @@ const App: Component = () => {
             }</For>
 
             <For each={model.items}>{(item, i) =>
-              <Item pos={item.pos} index={item.index} worryLevel={item.worryLevel} />
+              <Item pos={item.pos} index={item.index} worryLevel={item.worryLevel} delay={DELAY()} />
             }</For>
           </Match>
         </Switch>
@@ -182,7 +189,7 @@ const Monkey: Component<{ pos: number, itemsInspected: number }> = (props) => {
   );
 }
 
-const Item: Component<{ pos: number, index: number, worryLevel: number }> = (props) => {
+const Item: Component<{ pos: number, index: number, worryLevel: number, delay: number }> = (props) => {
   return (
     <div
       class={styles.Item}
@@ -191,7 +198,7 @@ const Item: Component<{ pos: number, index: number, worryLevel: number }> = (pro
         left: `${((props.index === 0 ? 0 : 5) + 25 + 6 * props.index) * Math.cos(props.pos * 2 * Math.PI)}vh`,
         top: `${((props.index === 0 ? 0 : 6) + 25 + 3 * props.index) * Math.sin(props.pos * 2 * Math.PI)}vh`,
         "z-index": 100 - props.index,
-        transition: `all ${THROW_DELAY / 1000}s ease-out`
+        transition: `all ${props.delay / 1000}s ease-out`
       }}
     >
       {props.worryLevel}
@@ -199,7 +206,9 @@ const Item: Component<{ pos: number, index: number, worryLevel: number }> = (pro
   );
 }
 
-const Input: Component<{ input: any, setInput: any, onStart: () => void }> = (props) => {
+const Input: Component<{ input: any, setInput: any, speed: any, setSpeed: any, onStart: () => void }> = (props) => {
+  const speedText = () => ["Slow", "Normal", "Fast", "The Flash"][props.speed()];
+
   return (
     <div class={styles.Input}>
       <textarea
@@ -207,6 +216,11 @@ const Input: Component<{ input: any, setInput: any, onStart: () => void }> = (pr
         value={props.input()}
         onInput={(e) => props.setInput(e.currentTarget.value)} />
       <div class={styles.InputFooter}>
+        <span class={styles.InputRangeSpan}>
+          Speed:
+          <input type="range" class={styles.InputRangeSlider} min={0} max={3} value={props.speed()} onInput={(e) => props.setSpeed(e.currentTarget.value)} />
+          {speedText()}
+        </span>
         <button class={styles.InputStartButton} onClick={(e) => props.onStart()}>Start</button>
       </div>
     </div>
