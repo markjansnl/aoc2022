@@ -1,0 +1,106 @@
+
+body {
+  background: url(./assets/jungle.jpg) no-repeat center center fixed;
+  background-size: cover;
+}
+
+.App {
+  text-align: center;
+  height: 50vh;
+  position: absolute;
+  overflow: none;
+  left: 50%;
+  top: 50vh;
+}
+
+.RoundInfo {
+  position: absolute;
+  left: calc(-50vh + 2rem);
+  top: calc(-50vh + 2rem);
+  padding: 0.25rem;
+  width: 6rem;
+  font-size: 1rem;
+  background-color: #dfd;
+  border: 1px solid #666;
+  border-radius: 5px;
+}
+
+.Catcher {
+  position: absolute;
+  width: 25vh;
+  left: 0;
+  translate: -50% -40%;
+  filter: drop-shadow(5px 5px 5px #222);
+  transition: all 0.5s ease-out;
+}
+
+.Monkey {
+  position: absolute;
+  width: 12vh;
+  left: 0;
+  translate: -50% -50%;
+  filter: drop-shadow(5px 5px 5px #222);
+}
+
+.MonkeyInfo {
+  position: absolute;
+  padding: 0.25rem;
+  font-size: 1.5vh;
+  background-color: #dfd;
+  border: 1px solid #666;
+  border-radius: 100vh;
+  translate: -50% -220%;
+}
+
+.Item {
+  background: url(./assets/box.png) no-repeat center center;
+  background-size: 100% 100%;
+  padding-top: 1.2vh;
+  padding-right: 0.5vh;
+  position: absolute;
+  width: 7vh;
+  height: 3vh;
+  filter: drop-shadow(2px 2px 5px #222);
+  font-size: 1.5vh;
+  font-weight: bold;
+}
+
+.Input {
+  position: absolute;
+  left: -10rem;
+  top: -40vh;
+  width: 25rem;
+  height: 80vh;
+  border: 0;
+  resize: none;
+  background-color: white;
+  border: 1px solid #666;
+  border-radius: 1rem;
+  filter: drop-shadow(5px 5px 15px #222);
+  display: flex;
+  flex-direction: column;
+  justify-items: stretch;
+}
+
+.InputFooter {
+  height: 3rem;
+  border-top: 1px solid #999;
+}
+
+.InputStartButton {
+  margin: 0.5rem 1rem;
+  height: 2rem;
+  width: 6rem;
+  font-size: 1rem;
+  background-color: #33f;
+  border: 1px solid white;
+  border-radius: 5px;
+  color: white;
+}
+
+.InputTextArea {
+  margin: 0.5rem;
+  border: 0;
+  resize: none;
+  flex-grow: 1;
+}

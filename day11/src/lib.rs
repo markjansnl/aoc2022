@@ -3,19 +3,20 @@ use std::cell::RefCell;
 pub mod input;
 
 pub struct Monkies {
-    monkies: Vec<RefCell<Monkey>>,
+    pub monkies: Vec<RefCell<Monkey>>,
     divisible_by_product: usize,
 }
 
 pub struct Monkey {
-    items: Vec<Item>,
+    pub items: Vec<Item>,
     items_inspected: usize,
     operation: Operation,
-    test: Test,
+    pub test: Test,
 }
 
+#[derive(Clone, Copy)]
 pub struct Item {
-    worry_level: usize,
+    pub worry_level: usize,
 }
 
 pub struct Operation {
