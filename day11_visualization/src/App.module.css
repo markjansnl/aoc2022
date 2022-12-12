@@ -2,6 +2,7 @@
 body {
   background: url(./assets/jungle.jpg) no-repeat center center fixed;
   background-size: cover;
+  background-color: black;
 }
 
 .App {
@@ -45,11 +46,62 @@ body {
 .MonkeyInfo {
   position: absolute;
   padding: 0.25rem;
-  font-size: 1.5vh;
   background-color: #dfd;
   border: 1px solid #666;
-  border-radius: 100vh;
+  border-radius: 2rem;
+  transition: all 1s;
+}
+
+.MonkeyInfoBusy {
+  top: var(--top);
+  left: var(--left);
+  font-size: 1.5vh;
   translate: -50% -220%;
+  opacity: 1;
+}
+
+.MonkeyInfoFirst {
+  left: -35vw;
+  top: -3rem;
+  font-size: 5rem;
+  z-index: 1000;
+  translate: -50% 0;
+}
+
+.MonkeyInfoSecond {
+  left: -6vw;
+  top: -3rem;
+  font-size: 5rem;
+  z-index: 1000;
+  translate: -50% 0;
+}
+
+.MonkeyInfoBusinessHidden {
+  left: 30vw;
+  top: -3rem;
+  font-size: 5rem;
+  z-index: 1000;
+  translate: -50% 0;
+  opacity: 0;
+  transition: opacity 1s ease-in;
+}
+
+.MonkeyInfoBusiness {
+  left: 30vw;
+  top: -3rem;
+  font-size: 5rem;
+  z-index: 1000;
+  translate: -50% 0;
+  opacity: 1;
+  transition: opacity 1s ease-in;
+}
+
+.MonkeyInfoHidden {
+  top: var(--top);
+  left: var(--left);
+  font-size: 1.5vh;
+  translate: -50% -220%;
+  opacity: 0;
 }
 
 .Item {
@@ -85,6 +137,19 @@ body {
 .InputFooter {
   height: 3rem;
   border-top: 1px solid #999;
+  display: flex;
+  justify-content: space-between;
+}
+
+.InputRangeSpan {
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  margin-left: 1rem;
+}
+
+.InputRangeSlider {
+  margin: 0.5rem;
 }
 
 .InputStartButton {
@@ -92,7 +157,7 @@ body {
   height: 2rem;
   width: 6rem;
   font-size: 1rem;
-  background-color: #33f;
+  background-color: #0075ff;
   border: 1px solid white;
   border-radius: 5px;
   color: white;
@@ -103,4 +168,39 @@ body {
   border: 0;
   resize: none;
   flex-grow: 1;
+  font-family: 'Fira Code', 'Monospace';
+  outline: none;
+}
+
+.MonkeyBusinessStrip {
+  position: absolute;
+  top: -6rem;
+  height: 12rem;
+  left: -50vw;
+  width: 100vw;
+  background-color: white;
+  border: 1px solid #666;
+  filter: drop-shadow(0 5px 15px #222);
+  z-index: 999;
+  transition: opacity 1s ease-in;
+}
+
+.MonkeyBusinessTimes {
+  position: absolute;
+  left: -20vw;
+  top: -3rem;
+  font-size: 5rem;
+  z-index: 1000;
+  translate: -50% 0;
+  transition: opacity 2s ease-in;
+}
+
+.MonkeyBusinessEquals {
+  position: absolute;
+  left: 10vw;
+  top: -3rem;
+  font-size: 5rem;
+  z-index: 1000;
+  translate: -50% 0;
+  transition: opacity 2s ease-in;
 }
