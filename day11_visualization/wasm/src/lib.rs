@@ -80,6 +80,10 @@ impl KeepAway {
             self.monkey_index = 0;
         }
     }
+
+    pub fn monkey_business(&self) -> usize {
+        self.monkies.monkey_business()
+    }
 }
 
 #[test]

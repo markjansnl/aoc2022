@@ -11,12 +11,14 @@ type Model = {
   catcher_flipped: boolean,
   monkies: Monkey[],
   items: Item[],
+  monkeyBusiness: number,
 };
 
 type Monkey = {
   pos: number,
   items: number[],
-  itemsInspected: number
+  itemsInspected: number,
+  ranking: number,
 };
 
 type Item = {
@@ -37,6 +39,7 @@ const App: Component = () => {
     catcher_flipped: false,
     monkies: [],
     items: [],
+    monkeyBusiness: 0,
   });
 
   let keepAway = undefined as unknown as KeepAway;
@@ -45,7 +48,7 @@ const App: Component = () => {
     setInput(example());
   });
 
-  const DELAY = () => Math.pow(3 - speed(), 2) * 100;
+  const DELAY = () => Math.pow(3 - speed(), 3) * 10;
 
   const onStart = () => {
     setShowInput(false);
@@ -64,7 +67,8 @@ const App: Component = () => {
       return {
         pos: i / a.length,
         items: monkeyItems,
-        itemsInspected: 0
+        itemsInspected: 0,
+        ranking: 0,
       };
     });
 
@@ -85,8 +89,8 @@ const App: Component = () => {
           const itemCount = model.monkies[monkeyIndex].items.length;
           for (let itemIndex = 0; itemIndex < itemCount; itemIndex++) {
             setModel(produce(draft => {
-              for (let i = 0; i < model.monkies[monkeyIndex].items.length; i++) {
-                draft.items[model.monkies[monkeyIndex].items[i]].index = i;
+              for (let i = 0; i < draft.monkies[monkeyIndex].items.length; i++) {
+                draft.items[draft.monkies[monkeyIndex].items[i]].index = i;
               }
             }));
             await delay(DELAY());
@@ -97,7 +101,7 @@ const App: Component = () => {
             }));
             await delay(0.5 * DELAY());
 
-            setModel(produce(draft => draft.items[model.monkies[monkeyIndex].items[0]].worryLevel = keepAway.get_borred()));
+            setModel(produce(draft => draft.items[draft.monkies[monkeyIndex].items[0]].worryLevel = keepAway.get_borred()));
             await delay(0.5 * DELAY());
 
             let throwTo = 0;
@@ -106,19 +110,28 @@ const App: Component = () => {
               throwTo = keepAway.throw();
               index = draft.monkies[monkeyIndex].items.splice(0, 1)[0];
               draft.monkies[throwTo].items.push(index);
-              draft.items[index].pos = model.monkies[throwTo].pos;
+              draft.items[index].pos = draft.monkies[throwTo].pos;
               draft.items[index].index = 0;
             }));
             await delay(DELAY());
 
             setModel(produce(draft => {
-              draft.items[index].index = model.monkies[throwTo].items.length;
+              draft.items[index].index = draft.monkies[throwTo].items.length;
             }));
             await delay(DELAY());
           }
           keepAway.next();
         }
       }
+      await delay(1000);
+      setModel(produce(draft => {
+        const rankings = draft.monkies.map((monkey, index) => [index, monkey.itemsInspected]);
+        rankings.sort((a, b) => b[1] - a[1]).forEach(([index, itemsInspected], ranking) => draft.monkies[index].ranking = ranking + 1);
+      }));
+      await delay(1000);
+      setModel(produce(draft => {
+        draft.monkeyBusiness = keepAway.monkey_business();
+      }));
     })();
   };
 
@@ -135,8 +148,14 @@ const App: Component = () => {
             <Catcher flipped={model.catcher_flipped} />
 
             <For each={model.monkies}>{(monkey, i) =>
-              <Monkey pos={monkey.pos} itemsInspected={monkey.itemsInspected} />
+              <>
+                <Monkey pos={monkey.pos} />
+                <MonkeyInfo pos={monkey.pos} itemsInspected={monkey.itemsInspected} ranking={monkey.ranking} />
+              </>
             }</For>
+
+            <MonkeyInfo pos={0} itemsInspected={model.monkeyBusiness} ranking={-1} />
+            <MonkeyBusiness monkeyBusiness={model.monkeyBusiness} />
 
             <For each={model.items}>{(item, i) =>
               <Item pos={item.pos} index={item.index} worryLevel={item.worryLevel} delay={DELAY()} />
@@ -166,26 +185,37 @@ const Catcher: Component<{ flipped: boolean }> = (props) => {
   );
 }
 
-const Monkey: Component<{ pos: number, itemsInspected: number }> = (props) => {
+const Monkey: Component<{ pos: number }> = (props) => {
   return (
-    <>
-      <img
-        src={monkey}
-        class={styles.Monkey}
-        style={{
-          transform: `scaleX(${ props.pos < 0.25 || props.pos > 0.75 ? -1 : 1 })`,
-          top: `${25 * Math.sin(props.pos * 2 * Math.PI)}vh`,
-          left: `${25 * Math.cos(props.pos * 2 * Math.PI)}vh`,
-        }}
-      />
-      <div
-        class={styles.MonkeyInfo}
-        style={{
-          top: `${25 * Math.sin(props.pos * 2 * Math.PI)}vh`,
-          left: `${25 * Math.cos(props.pos * 2 * Math.PI)}vh`,
-        }}
-        >{props.itemsInspected}</div>
-    </>
+    <img
+      src={monkey}
+      class={styles.Monkey}
+      style={{
+        transform: `scaleX(${ props.pos < 0.25 || props.pos > 0.75 ? -1 : 1 })`,
+        top: `${25 * Math.sin(props.pos * 2 * Math.PI)}vh`,
+        left: `${25 * Math.cos(props.pos * 2 * Math.PI)}vh`,
+      }}
+    />
+  );
+}
+
+const MonkeyInfo: Component<{ pos: number, itemsInspected: number, ranking: number }> = (props) => {
+  return (
+    <div
+      class={styles.MonkeyInfo}
+      classList={{
+        [styles.MonkeyInfoBusy]: props.ranking === 0,
+        [styles.MonkeyInfoFirst]: props.ranking === 1,
+        [styles.MonkeyInfoSecond]: props.ranking === 2,
+        [styles.MonkeyInfoHidden]: props.ranking > 2,
+        [styles.MonkeyInfoBusinessHidden]: props.ranking === -1 && props.itemsInspected === 0,
+        [styles.MonkeyInfoBusiness]: props.ranking === -1 && props.itemsInspected > 0,
+      }}
+      style={{
+        "--top": `${25 * Math.sin(props.pos * 2 * Math.PI)}vh`,
+        "--left": `${25 * Math.cos(props.pos * 2 * Math.PI)}vh`,
+      }}
+      >{props.itemsInspected}</div>
   );
 }
 
@@ -227,5 +257,16 @@ const Input: Component<{ input: any, setInput: any, speed: any, setSpeed: any, o
   );
 }
 
+const MonkeyBusiness: Component<{ monkeyBusiness: number }> = (props) => {
+  const style1 = () => ({ opacity: props.monkeyBusiness === 0 ? 0 : 0.8 });
+  const style2 = () => ({ opacity: props.monkeyBusiness === 0 ? 0 : 1 });
+  return (
+    <>
+      <div class={styles.MonkeyBusinessStrip} style={style1()} />
+      <div class={styles.MonkeyBusinessTimes} style={style2()}>&times;</div>
+      <div class={styles.MonkeyBusinessEquals} style={style2()}> = </div>
+    </>
+  );
+}
 
 export default App;
