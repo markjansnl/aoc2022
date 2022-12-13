@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use serde::Deserialize;
 use std::cmp::Ordering::*;
 
-#[derive(Debug, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Deserialize, PartialEq, Eq, Clone)]
 #[serde(untagged)]
 pub enum Value {
     Number(usize),
@@ -14,7 +14,7 @@ pub enum Value {
 impl From<&str> for Value {
     #[inline]
     fn from(line: &str) -> Self {
-        serde_json::from_str::<Value>(line).unwrap()
+        serde_json::from_str(line).unwrap()
     }
 }
 
@@ -35,12 +35,12 @@ impl Ord for Value {
 fn cmp_list(a: &[Value], b: &[Value]) -> std::cmp::Ordering {
     match (a.len(), b.len()) {
         (0, 0) => Equal,
-        (_, 0) => Greater,
         (0, _) => Less,
+        (_, 0) => Greater,
         _ => {
-            let (left_head, left_tail) = a.split_first().unwrap();
-            let (right_head, right_tail) = b.split_first().unwrap();
-            match left_head.cmp(right_head) {
+            let (left_first, left_tail) = a.split_first().unwrap();
+            let (right_first, right_tail) = b.split_first().unwrap();
+            match left_first.cmp(right_first) {
                 Equal => cmp_list(left_tail, right_tail),
                 ordering => ordering,
             }
@@ -63,8 +63,7 @@ pub fn right_order_count(input: &str) -> usize {
         .par_bridge()
         .filter_map(|(index, pair)| {
             pair.split_once('\n')
-                .map(|(left, right)| (Value::from(left), Value::from(right)))
-                .filter(|(left, right)| left < right)
+                .filter(|(left, right)| Value::from(*left) < Value::from(*right))
                 .map(|_| index + 1)
         })
         .sum()
