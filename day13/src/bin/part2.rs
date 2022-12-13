@@ -1,4 +1,4 @@
-use day13::{input, decoder_key};
+use day13::{decoder_key, input};
 
 fn main() {
     println!("{}", decoder_key(input::USER));

@@ -1,8 +1,8 @@
 pub mod input;
 
+use rayon::prelude::*;
 use serde::Deserialize;
 use std::cmp::Ordering::*;
-use rayon::prelude::*;
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Clone)]
 #[serde(untagged)]
