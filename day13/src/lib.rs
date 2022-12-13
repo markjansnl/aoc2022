@@ -21,21 +21,25 @@ impl Ord for Value {
         use Value::*;
         match (self, other) {
             (Number(a), Number(b)) => a.cmp(b),
-            (Number(a), List(_)) => List(vec![Number(*a)]).cmp(other),
-            (List(_), Number(b)) => self.cmp(&List(vec![Number(*b)])),
-            (List(a), List(b)) => match (a.len(), b.len()) {
-                (0, 0) => Equal,
-                (_, 0) => Greater,
-                (0, _) => Less,
-                _ => {
-                    let (left_head, left_tail) = a.split_first().unwrap();
-                    let (right_head, right_tail) = b.split_first().unwrap();
-                    match left_head.cmp(right_head) {
-                        Equal => List(left_tail.to_vec()).cmp(&List(right_tail.to_vec())),
-                        ordering => ordering,
-                    }
-                }
-            },
+            (Number(_), List(b)) => cmp_list(&[self.clone()], b),
+            (List(a), Number(_)) => cmp_list(a, &[other.clone()]),
+            (List(a), List(b)) => cmp_list(a, b),
+        }
+    }
+}
+
+fn cmp_list(a: &[Value], b: &[Value]) -> std::cmp::Ordering {
+    match (a.len(), b.len()) {
+        (0, 0) => Equal,
+        (_, 0) => Greater,
+        (0, _) => Less,
+        _ => {
+            let (left_head, left_tail) = a.split_first().unwrap();
+            let (right_head, right_tail) = b.split_first().unwrap();
+            match left_head.cmp(right_head) {
+                Equal => cmp_list(left_tail, right_tail),
+                ordering => ordering,
+            }
         }
     }
 }
