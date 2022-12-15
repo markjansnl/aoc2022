@@ -1,8 +1,7 @@
 #![allow(clippy::len_without_is_empty)]
 
 use rayon::prelude::*;
-use std::{collections::HashSet, ops::RangeInclusive};
-use utils::RangeExt;
+use std::collections::HashSet;
 
 pub mod input;
 
@@ -18,9 +17,10 @@ pub struct Sensor {
     closest_beacon: Position,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Range {
-    range: RangeInclusive<isize>,
+    start: isize,
+    end: isize,
 }
 
 #[derive(Debug)]
@@ -53,56 +53,68 @@ impl From<&str> for Sensor {
     }
 }
 
-impl Sensor {
-    pub fn range(&self, y: isize) -> Option<RangeInclusive<isize>> {
-        let manhatten_distance = self.position.manhatten_distance(&self.closest_beacon);
-        let horizontal = manhatten_distance - (self.position.y - y).abs();
+impl Range {
+    #[inline]
+    pub fn new(sensor: Sensor, y: isize) -> Option<Self> {
+        let manhatten_distance = sensor.position.manhatten_distance(&sensor.closest_beacon);
+        let horizontal = manhatten_distance - (sensor.position.y - y).abs();
         if horizontal > 0 {
-            Some(self.position.x - horizontal..=self.position.x + horizontal)
+            Some(Self {
+                start: sensor.position.x - horizontal,
+                end: sensor.position.x + horizontal,
+            })
         } else {
             None
         }
     }
-}
 
-impl Range {
     #[inline]
-    pub fn new(sensor: Sensor, y: isize) -> Option<Self> {
-        sensor.range(y).map(|range| Self { range })
-    }
-
     pub fn new_with_bound(sensor: Sensor, y: isize, bound: isize) -> Option<Self> {
-        sensor.range(y).map(|range| Self {
-            range: *range.start().max(&0)..=*range.end().min(&bound),
+        Self::new(sensor, y).map(|range| Self {
+            start: range.start.max(0),
+            end: range.end.min(bound),
         })
     }
 
+    #[inline]
     pub fn len(self) -> usize {
-        (self.range.end() - *self.range.start() + 1) as usize
+        (self.end - self.start) as usize + 1
+    }
+
+    #[inline]
+    pub fn contains(&self, n: isize) -> bool {
+        n >= self.start && n <= self.end
+    }
+
+    #[inline]
+    pub fn fully_contains(&self, other: &Self) -> bool {
+        self.contains(other.start) && self.contains(other.end)
+    }
+
+    #[inline]
+    pub fn overlaps(&self, other: &Self) -> bool {
+        self.contains(other.start) || self.contains(other.end)
     }
 }
 
 impl Merge for Range {
     #[inline]
     fn merge(&mut self, other: &mut Self) -> bool {
-        if self.range.fully_contains(&other.range) {
-            true
-        } else if other.range.fully_contains(&self.range) {
-            self.range = other.range.clone();
-            true
-        } else if self.range.overlaps(&other.range) {
-            self.range = *self.range.start().min(other.range.start())
-                ..=*self.range.end().max(other.range.end());
-            true
-        } else if *self.range.end() + 1 == *other.range.start() {
-            self.range = *self.range.start()..=*other.range.end();
-            true
-        } else if *self.range.start() == *other.range.end() + 1 {
-            self.range = *other.range.start()..=*self.range.end();
-            true
+        if self.fully_contains(other) {
+            // just do nothing
+        } else if other.fully_contains(self) {
+            *self = *other;
+        } else if self.overlaps(other) {
+            self.start = self.start.min(other.start);
+            self.end = self.end.max(other.end);
+        } else if self.end + 1 == other.start {
+            self.end = other.end;
+        } else if self.start == other.end + 1 {
+            self.start = other.start;
         } else {
-            false
+            return false;
         }
+        true
     }
 }
 
@@ -119,6 +131,7 @@ impl RangeWithBeacon {
         })
     }
 
+    #[inline]
     pub fn len(self) -> usize {
         self.range.len() - self.beacons.len()
     }
@@ -171,16 +184,15 @@ pub fn tuning_frequency(bound: isize, input: &str) -> isize {
                 .fold(Vec::<Range>::new(), merge_ranges);
 
             if ranges.len() == 2 {
-                Some(y + 4000000 * (ranges.first().unwrap().range.end() + 1))
-            } else if *ranges.first().unwrap().range.start() == 1 {
-                Some(0)
-            } else if *ranges.last().unwrap().range.end() == bound - 1 {
-                Some(y + 4000000 * bound)
+                y + 4000000 * (ranges.first().unwrap().end + 1)
+            } else if ranges.first().unwrap().start == 1 {
+                y
+            } else if ranges.last().unwrap().end == bound - 1 {
+                y + 4000000 * bound
             } else {
-                None
+                -1
             }
         })
-        .find_any(Option::is_some)
-        .unwrap()
+        .find_any(|freq| freq >= &0)
         .unwrap()
 }

@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 rayon = "1.6.0"
-utils = { path = "../utils" }
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
