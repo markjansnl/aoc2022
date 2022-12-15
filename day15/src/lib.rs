@@ -1,5 +1,6 @@
 #![allow(clippy::len_without_is_empty)]
 
+use rayon::prelude::*;
 use std::{collections::HashSet, ops::RangeInclusive};
 use utils::RangeExt;
 
@@ -61,6 +62,14 @@ impl RangeWithBeacon {
         }
     }
 
+    pub fn new_with_bounds(sensor: Sensor, y: isize, bound: isize) -> Option<Self> {
+        Self::new(sensor, y).map(|range_with_beacon| Self {
+            range: *range_with_beacon.range.start().max(&0)
+                ..=*range_with_beacon.range.end().min(&bound),
+            beacons: HashSet::new(),
+        })
+    }
+
     #[inline]
     pub fn merge(&mut self, other: &mut Self) -> bool {
         if self.range.fully_contains(&other.range) {
@@ -86,17 +95,6 @@ impl RangeWithBeacon {
 }
 
 #[inline]
-pub fn nr_of_no_beacons_on_line(y: isize, input: &str) -> usize {
-    input
-        .lines()
-        .filter_map(|line| RangeWithBeacon::new(Sensor::from(line), y))
-        .fold(Vec::<RangeWithBeacon>::new(), merge_ranges)
-        .into_iter()
-        .map(RangeWithBeacon::len)
-        .sum()
-}
-
-#[inline]
 fn merge_ranges(
     mut merged: Vec<RangeWithBeacon>,
     mut next: RangeWithBeacon,
@@ -110,4 +108,42 @@ fn merge_ranges(
     }
     merged.push(next);
     merged
+}
+
+#[inline]
+pub fn nr_of_no_beacons_on_line(y: isize, input: &str) -> usize {
+    input
+        .lines()
+        .filter_map(|line| RangeWithBeacon::new(Sensor::from(line), y))
+        .fold(Vec::<RangeWithBeacon>::new(), merge_ranges)
+        .into_iter()
+        .map(RangeWithBeacon::len)
+        .sum()
+}
+
+#[inline]
+pub fn tuning_frequency(bound: isize, input: &str) -> isize {
+    let sensors = input.lines().map(Sensor::from).collect::<Vec<_>>();
+
+    *(0..=bound)
+        .into_par_iter()
+        .filter_map(|y| {
+            let ranges = sensors
+                .iter()
+                .filter_map(|sensor| RangeWithBeacon::new_with_bounds(*sensor, y, bound))
+                .fold(Vec::<RangeWithBeacon>::new(), merge_ranges);
+
+            if ranges.len() == 2 {
+                Some(y + 4000000 * (ranges.first().unwrap().range.end() + 1))
+            } else if *ranges.first().unwrap().range.start() == 1 {
+                Some(0)
+            } else if *ranges.last().unwrap().range.end() == bound - 1 {
+                Some(y + 4000000 * bound)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .first()
+        .unwrap()
 }
