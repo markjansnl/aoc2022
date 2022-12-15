@@ -5,25 +5,24 @@ use std::collections::HashSet;
 
 pub mod input;
 
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Position {
     x: isize,
     y: isize,
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Sensor {
     position: Position,
     closest_beacon: Position,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Range {
     start: isize,
     end: isize,
 }
 
-#[derive(Debug)]
 pub struct RangeWithBeacon {
     range: Range,
     beacons: HashSet<isize>,
@@ -44,12 +43,16 @@ impl From<&str> for Sensor {
     #[inline]
     fn from(line: &str) -> Self {
         let mut splits = line.split(&[' ', ',', '=', ':'][..]);
-        let mut sensor = Sensor::default();
-        sensor.position.x = splits.nth(3).unwrap().parse().unwrap();
-        sensor.position.y = splits.nth(2).unwrap().parse().unwrap();
-        sensor.closest_beacon.x = splits.nth(6).unwrap().parse().unwrap();
-        sensor.closest_beacon.y = splits.nth(2).unwrap().parse().unwrap();
-        sensor
+        Self {
+            position: Position {
+                x: splits.nth(3).unwrap().parse().unwrap(),
+                y: splits.nth(2).unwrap().parse().unwrap(),
+            },
+            closest_beacon: Position {
+                x: splits.nth(6).unwrap().parse().unwrap(),
+                y: splits.nth(2).unwrap().parse().unwrap(),
+            },
+        }
     }
 }
 
@@ -83,7 +86,7 @@ impl Range {
 
     #[inline]
     pub fn contains(&self, n: isize) -> bool {
-        n >= self.start && n <= self.end
+        self.start <= n && n <= self.end
     }
 
     #[inline]
@@ -153,7 +156,7 @@ impl Merge for RangeWithBeacon {
 fn merge_ranges<M: Merge>(mut merged: Vec<M>, mut next: M) -> Vec<M> {
     for prev in merged.iter_mut() {
         if prev.merge(&mut next) {
-            return merged.into_iter().fold(Vec::<M>::new(), merge_ranges::<M>);
+            return merged.into_iter().fold(Vec::new(), merge_ranges);
         }
     }
     merged.push(next);
@@ -165,7 +168,7 @@ pub fn nr_of_no_beacons_on_line(y: isize, input: &str) -> usize {
     input
         .lines()
         .filter_map(|line| RangeWithBeacon::new(Sensor::from(line), y))
-        .fold(Vec::<RangeWithBeacon>::new(), merge_ranges)
+        .fold(Vec::new(), merge_ranges)
         .into_iter()
         .map(RangeWithBeacon::len)
         .sum()
@@ -181,7 +184,7 @@ pub fn tuning_frequency(bound: isize, input: &str) -> isize {
             let ranges = sensors
                 .iter()
                 .filter_map(|sensor| Range::new_with_bound(*sensor, y, bound))
-                .fold(Vec::<Range>::new(), merge_ranges);
+                .fold(Vec::new(), merge_ranges);
 
             if ranges.len() == 2 {
                 y + 4000000 * (ranges.first().unwrap().end + 1)
