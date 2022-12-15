@@ -9,7 +9,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| nr_of_no_beacons_on_line(2000000, black_box(input::USER)))
     });
 
-    group.bench_function("part2", |b| b.iter(|| tuning_frequency(4000000, black_box(input::USER))));
+    group.bench_function("part2", |b| {
+        b.iter(|| tuning_frequency(4000000, black_box(input::USER)))
+    });
 
     group.finish();
 }

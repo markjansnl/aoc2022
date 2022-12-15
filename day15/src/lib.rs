@@ -18,9 +18,19 @@ pub struct Sensor {
     closest_beacon: Position,
 }
 
-pub struct RangeWithBeacon {
+#[derive(Debug)]
+pub struct Range {
     range: RangeInclusive<isize>,
+}
+
+#[derive(Debug)]
+pub struct RangeWithBeacon {
+    range: Range,
     beacons: HashSet<isize>,
+}
+
+pub trait Merge {
+    fn merge(&mut self, other: &mut Self) -> bool;
 }
 
 impl Position {
@@ -43,67 +53,94 @@ impl From<&str> for Sensor {
     }
 }
 
-impl RangeWithBeacon {
-    #[inline]
-    pub fn new(sensor: Sensor, y: isize) -> Option<Self> {
-        let manhatten_distance = sensor.position.manhatten_distance(&sensor.closest_beacon);
-        let horizontal = manhatten_distance - (sensor.position.y - y).abs();
-        if horizontal < 0 {
-            None
+impl Sensor {
+    pub fn range(&self, y: isize) -> Option<RangeInclusive<isize>> {
+        let manhatten_distance = self.position.manhatten_distance(&self.closest_beacon);
+        let horizontal = manhatten_distance - (self.position.y - y).abs();
+        if horizontal > 0 {
+            Some(self.position.x - horizontal..=self.position.x + horizontal)
         } else {
-            Some(Self {
-                range: sensor.position.x - horizontal..=sensor.position.x + horizontal,
-                beacons: if sensor.closest_beacon.y == y {
-                    HashSet::from([sensor.closest_beacon.x])
-                } else {
-                    HashSet::new()
-                },
-            })
+            None
         }
     }
+}
 
-    pub fn new_with_bounds(sensor: Sensor, y: isize, bound: isize) -> Option<Self> {
-        Self::new(sensor, y).map(|range_with_beacon| Self {
-            range: *range_with_beacon.range.start().max(&0)
-                ..=*range_with_beacon.range.end().min(&bound),
-            beacons: HashSet::new(),
+impl Range {
+    #[inline]
+    pub fn new(sensor: Sensor, y: isize) -> Option<Self> {
+        sensor.range(y).map(|range| Self { range })
+    }
+
+    pub fn new_with_bound(sensor: Sensor, y: isize, bound: isize) -> Option<Self> {
+        sensor.range(y).map(|range| Self {
+            range: *range.start().max(&0)..=*range.end().min(&bound),
         })
     }
 
+    pub fn len(self) -> usize {
+        (self.range.end() - *self.range.start() + 1) as usize
+    }
+}
+
+impl Merge for Range {
     #[inline]
-    pub fn merge(&mut self, other: &mut Self) -> bool {
+    fn merge(&mut self, other: &mut Self) -> bool {
         if self.range.fully_contains(&other.range) {
-            self.beacons.extend(&other.beacons);
             true
         } else if other.range.fully_contains(&self.range) {
             self.range = other.range.clone();
-            self.beacons.extend(&other.beacons);
             true
         } else if self.range.overlaps(&other.range) {
             self.range = *self.range.start().min(other.range.start())
                 ..=*self.range.end().max(other.range.end());
+            true
+        } else if *self.range.end() + 1 == *other.range.start() {
+            self.range = *self.range.start()..=*other.range.end();
+            true
+        } else if *self.range.start() == *other.range.end() + 1 {
+            self.range = *other.range.start()..=*self.range.end();
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl RangeWithBeacon {
+    #[inline]
+    pub fn new(sensor: Sensor, y: isize) -> Option<Self> {
+        Range::new(sensor, y).map(|range| Self {
+            range,
+            beacons: if sensor.closest_beacon.y == y {
+                HashSet::from([sensor.closest_beacon.x])
+            } else {
+                HashSet::new()
+            },
+        })
+    }
+
+    pub fn len(self) -> usize {
+        self.range.len() - self.beacons.len()
+    }
+}
+
+impl Merge for RangeWithBeacon {
+    #[inline]
+    fn merge(&mut self, other: &mut Self) -> bool {
+        if self.range.merge(&mut other.range) {
             self.beacons.extend(&other.beacons);
             true
         } else {
             false
         }
     }
-
-    pub fn len(self) -> usize {
-        (self.range.end() - *self.range.start() + 1 - self.beacons.len() as isize) as usize
-    }
 }
 
 #[inline]
-fn merge_ranges(
-    mut merged: Vec<RangeWithBeacon>,
-    mut next: RangeWithBeacon,
-) -> Vec<RangeWithBeacon> {
+fn merge_ranges<M: Merge>(mut merged: Vec<M>, mut next: M) -> Vec<M> {
     for prev in merged.iter_mut() {
         if prev.merge(&mut next) {
-            return merged
-                .into_iter()
-                .fold(Vec::<RangeWithBeacon>::new(), merge_ranges);
+            return merged.into_iter().fold(Vec::<M>::new(), merge_ranges::<M>);
         }
     }
     merged.push(next);
@@ -125,13 +162,13 @@ pub fn nr_of_no_beacons_on_line(y: isize, input: &str) -> usize {
 pub fn tuning_frequency(bound: isize, input: &str) -> isize {
     let sensors = input.lines().map(Sensor::from).collect::<Vec<_>>();
 
-    *(0..=bound)
+    (0..=bound)
         .into_par_iter()
-        .filter_map(|y| {
+        .map(|y| {
             let ranges = sensors
                 .iter()
-                .filter_map(|sensor| RangeWithBeacon::new_with_bounds(*sensor, y, bound))
-                .fold(Vec::<RangeWithBeacon>::new(), merge_ranges);
+                .filter_map(|sensor| Range::new_with_bound(*sensor, y, bound))
+                .fold(Vec::<Range>::new(), merge_ranges);
 
             if ranges.len() == 2 {
                 Some(y + 4000000 * (ranges.first().unwrap().range.end() + 1))
@@ -143,7 +180,7 @@ pub fn tuning_frequency(bound: isize, input: &str) -> isize {
                 None
             }
         })
-        .collect::<Vec<_>>()
-        .first()
+        .find_any(Option::is_some)
+        .unwrap()
         .unwrap()
 }
