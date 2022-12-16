@@ -6,41 +6,33 @@ pub mod input;
 pub type ValveId = String;
 pub type Flow = usize;
 
-#[derive(Debug, Default, Clone)]
-pub struct Valve {
-    flow: Flow,
-    destinations: Vec<ValveId>,
-}
-
 #[derive(Debug, Default)]
 pub struct Cave {
-    valves: HashMap<ValveId, Valve>,
+    flow: HashMap<ValveId, Flow>,
+    destinations: HashMap<ValveId, Vec<ValveId>>,
+    destinations_with_flow: HashMap<ValveId, Vec<ValveId>>,
 }
 
 impl From<&str> for Cave {
     fn from(input: &str) -> Self {
-        Self {
-            valves: input
-                .lines()
-                .map(|line| {
-                    let (valve_str, destinations_str) = line
-                        .split_once(" valve ")
-                        .or(line.split_once(" valves "))
-                        .unwrap();
-                    let mut valve_splits = valve_str.split(&[' ', '=', ';'][..]);
-                    (
-                        valve_splits.nth(1).unwrap().to_string(),
-                        Valve {
-                            flow: valve_splits.nth(3).unwrap().parse().unwrap(),
-                            destinations: destinations_str
-                                .split(", ")
-                                .map(ToString::to_string)
-                                .collect(),
-                        },
-                    )
-                })
-                .collect(),
+        let mut cave = Self::default();
+        for line in input.lines() {
+            let (valve_str, destinations_str) = line
+                .split_once(" valve ")
+                .or(line.split_once(" valves "))
+                .unwrap();
+            let mut valve_splits = valve_str.split(&[' ', '=', ';'][..]);
+            let valve_id =  valve_splits.nth(1).unwrap().to_string();
+            cave.flow.insert(valve_id.clone(), valve_splits.nth(3).unwrap().parse().unwrap());
+            cave.destinations.insert(valve_id.clone(), destinations_str
+                .split(", ")
+                .map(ToString::to_string)
+                .collect());
+        // for (valve_id, valve) in cave.valves.iter_mut().filter(|(valve_id, valve)| valve_id.as_str() == "AA" || valve.flow > 0) {
+
+        // }
         }
+        cave
     }
 }
 
@@ -60,14 +52,14 @@ impl Minute {
         if self.minute == 30 {
             return successors;
         }
-        let valve = cave.valves.get(&self.current_valve).unwrap();
-        if !self.open_valves.contains(&self.current_valve) && valve.flow > 0 {
+        let flow = cave.flow.get(&self.current_valve).unwrap();
+        if !self.open_valves.contains(&self.current_valve) && flow > &0 {
             let mut next_minute = self.move_to(self.current_valve.clone());
             next_minute.open_valves.push(self.current_valve.clone());
-            next_minute.releasing_pressure += valve.flow;
+            next_minute.releasing_pressure += flow;
             successors.push(next_minute);
         }
-        for destination in valve.destinations.iter() {
+        for destination in cave.destinations.get(&self.current_valve).unwrap() {
             if destination != &self.last_valve {
                 successors.push(self.move_to(destination.clone()));
             }
