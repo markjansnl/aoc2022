@@ -1,11 +1,15 @@
-use std::iter::repeat;
+use std::{iter::repeat, collections::HashMap};
 
 pub mod input;
 
 #[derive(Clone, Copy)]
 pub struct Row(u8);
 
-pub struct Cave(Vec<Row>);
+pub struct Cave {
+    rows: Vec<Row>,
+    removed: usize,
+    // rows_cache: HashMap<Vec<Row>, >
+}
 
 #[derive(Clone, Copy)]
 pub struct Block([Row; 4]);
@@ -53,18 +57,21 @@ impl Block {
 impl Cave {
     #[inline]
     pub fn new() -> Self {
-        Self(vec![Row(0b01111111)])
+        Self{
+            rows: vec![Row(0b01111111)],
+            removed: 0,
+        }
     }
 
     #[inline]
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.rows.len() + self.removed
     }
 
     #[inline]
     pub fn hittest(&self, block: &Block, y: usize) -> bool {
         for delta_y in 0..4 {
-            if let Some(cave_row) = self.0.get(y + delta_y) {
+            if let Some(cave_row) = self.rows.get(y + delta_y) {
                 if cave_row.0 & block.0[3 - delta_y].0 != 0 {
                     return true;
                 }
@@ -74,15 +81,25 @@ impl Cave {
     }
 
     pub fn place(&mut self, block: &Block, y: usize) {
+        let mut remove = 0;
         for delta_y in 0..4 {
             if block.0[3 - delta_y].0 == 0 {
                 return;
             }
-            if let Some(cave_row) = self.0.get_mut(y + delta_y) {
-                cave_row.0 |= block.0[3 - delta_y].0; 
+
+            if let Some(cave_row) = self.rows.get_mut(y + delta_y) {
+                cave_row.0 |= block.0[3 - delta_y].0;
+                if cave_row.0 == 0b01111111 {
+                    remove = y + delta_y;
+                }
             } else {
-                self.0.push(block.0[3 - delta_y]);
+                self.rows.push(block.0[3 - delta_y]);
             }
+        }
+        if remove > 0 {
+            self.rows[1..].rotate_left(remove);
+            self.rows.truncate(self.len() - remove);
+            self.removed += remove;
         }
     }
 }
