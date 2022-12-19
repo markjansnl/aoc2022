@@ -19,20 +19,14 @@ impl From<&'static str> for Cave {
         for line in input.lines() {
             let (valve_str, destinations_str) = line
                 .split_once(" valve ")
-                .or(line.split_once(" valves "))
+                .or_else(|| line.split_once(" valves "))
                 .unwrap();
             let mut valve_splits = valve_str.split(&[' ', '=', ';'][..]);
             let valve_id = valve_splits.nth(1).unwrap();
-            cave.flow.insert(
-                valve_id,
-                valve_splits.nth(3).unwrap().parse().unwrap(),
-            );
-            cave.destinations.insert(
-                valve_id,
-                destinations_str
-                    .split(", ")
-                    .collect(),
-            );
+            cave.flow
+                .insert(valve_id, valve_splits.nth(3).unwrap().parse().unwrap());
+            cave.destinations
+                .insert(valve_id, destinations_str.split(", ").collect());
         }
 
         for (valve_id, _) in cave
@@ -60,13 +54,17 @@ impl From<&'static str> for Cave {
                 .unwrap()
                 .0;
                 path.remove(0);
-                if path.iter().take(path.len() - 1).find(|p| cave.flow.get(*p).unwrap() > &0).is_none() {
+                if !path
+                    .iter()
+                    .take(path.len() - 1)
+                    .any(|p| cave.flow.get(*p).unwrap() > &0)
+                {
                     cave.destinations_with_flow
                         .entry(valve_id)
                         .and_modify(|destinations_with_flow| {
                             destinations_with_flow.insert(destination, path.clone());
                         })
-                        .or_insert([(destination.clone(), path)].into_iter().collect());
+                        .or_insert_with(|| [(*destination, path)].into_iter().collect());
                 }
             }
         }

@@ -1,97 +1,152 @@
-use pathfinding::prelude::*;
 use day16::*;
+use itertools::Itertools;
+use pathfinding::prelude::*;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct Minute {
     minute: usize,
-
-    me_current_valve: ValveId,
-    me_last_valve: ValveId,
-
-    elephant_current_valve: ValveId,
-    elephant_last_valve: ValveId,
-
+    current_valve: [ValveId; 2],
+    last_valve: [ValveId; 2],
+    heading_to: [Vec<ValveId>; 2],
     open_valves: Vec<ValveId>,
     releasing_pressure: Flow,
     released_pressure: Flow,
+    // backtrack: String,
 }
 
+const ME: usize = 0;
+const ELEPHANT: usize = 1;
+
 impl Minute {
+    #[inline]
     pub fn successors(&self, cave: &Cave) -> Vec<Minute> {
-        let mut successors = Vec::new();
-        if self.minute == 30 {
-            return successors;
+        if self.minute == 26 {
+            return Vec::new();
         }
-        let flow = cave.flow.get(&self.me_current_valve).unwrap();
-        if !self.open_valves.contains(&self.me_current_valve) && flow > &0 {
-            successors.push(self.open_valve(flow));
+        if self.open_valves.len() == cave.destinations_with_flow.keys().len() - 1 {
+            return vec![Minute {
+                minute: 26,
+                released_pressure: self.released_pressure
+                    + (26 - self.minute) * self.releasing_pressure,
+                ..self.clone()
+            }];
         }
-        let flow = cave.flow.get(&self.elephant_current_valve).unwrap();
-        if !self.open_valves.contains(&self.elephant_current_valve) && flow > &0 {
-            successors.push(self.open_valve(flow));
-        }
-        for (_, path) in cave
-            .destinations_with_flow
-            .get(&self.me_current_valve)
-            .unwrap()
-        {
-            if path[0] != self.me_last_valve {
-                let mut successor = self.clone();
-                for destination in path.iter() {
-                    successor = successor.move_to(destination.clone(), destination.clone());
-                    if successor.minute == 30 {
-                        break;
+
+        let me_successors = self.single_successors(cave, ME);
+        let elephant_successors = self.single_successors(cave, ELEPHANT);
+
+        me_successors
+            .into_iter()
+            .cartesian_product(elephant_successors.into_iter())
+            .filter_map(|(me, elephant)| {
+                let mut open_valves = self.open_valves.clone();
+                if let Some(me_opened_valve) = me.open_valves.first() {
+                    if let Some(elephant_opened_valve) = elephant.open_valves.first() {
+                        if me_opened_valve == elephant_opened_valve {
+                            return None
+                        }
+                        open_valves.push(*elephant_opened_valve);
                     }
+                    open_valves.push(*me_opened_valve);
+                } else if let Some(elephant_opened_valve) = elephant.open_valves.first() {
+                    open_valves.push(*elephant_opened_valve);
                 }
+                
+                Some(Minute {
+                    minute: self.minute + 1,
+                    current_valve: [me.current_valve[ME], elephant.current_valve[ELEPHANT]],
+                    last_valve: [me.last_valve[ME], elephant.last_valve[ELEPHANT]],
+                    heading_to: [
+                        me.heading_to[ME].clone(),
+                        elephant.heading_to[ELEPHANT].clone(),
+                    ],
+                    open_valves: open_valves,
+                    releasing_pressure: me.releasing_pressure
+                        + elephant.releasing_pressure
+                        + self.releasing_pressure,
+                    released_pressure: self.released_pressure + self.releasing_pressure,
+                    // backtrack: format!(
+                    //     "{}\n{}, {}  {open_valves:?}",
+                    //     self.backtrack, me.current_valve[ME], elephant.current_valve[ELEPHANT]
+                    // ),
+                })
+            })
+            .collect()
+    }
+
+    #[inline]
+    fn single_successors(&self, cave: &Cave, who: usize) -> Vec<Minute> {
+        if let Some(next_valve) = self.heading_to[who].first() {
+            return vec![self.move_to(next_valve, who)];
+        }
+        let mut successors = Vec::new();
+        let flow = cave.flow.get(&self.current_valve[who]).unwrap();
+        if !self.open_valves.contains(&self.current_valve[who]) && flow > &0 {
+            successors.push(self.open_valve(flow, who));
+        }
+        for path in cave
+            .destinations_with_flow
+            .get(&self.current_valve[who])
+            .unwrap()
+            .values()
+        {
+            let (first, tail) = path.split_first().unwrap();
+            if *first != self.last_valve[who] {
+                let mut successor = self.move_to(first, who);
+                successor.heading_to[who] = tail.to_vec();
                 successors.push(successor);
             }
         }
         successors
     }
 
-    fn open_valve(&self, flow: &Flow) -> Minute {
-        let mut next_minute = self.move_to(self.me_current_valve.clone(), self.elephant_current_valve.clone());
-        next_minute.open_valves.push(self.me_current_valve.clone());
-        next_minute.releasing_pressure += flow;
+    #[inline]
+    fn open_valve(&self, flow: &Flow, who: usize) -> Minute {
+        let mut next_minute = self.move_to(self.current_valve[who], who);
+        next_minute.open_valves = vec![self.current_valve[who]];
+        next_minute.releasing_pressure = *flow;
         next_minute
     }
 
-    fn move_to(&self, me_next_valve: ValveId, elephant_next_valve: ValveId) -> Minute {
-        Self {
-            minute: self.minute + 1,
-            me_current_valve: me_next_valve,
-            me_last_valve: self.me_current_valve.clone(),
-            elephant_current_valve: elephant_next_valve,
-            elephant_last_valve: self.elephant_current_valve.clone(),
-            open_valves: self.open_valves.clone(),
-            releasing_pressure: self.releasing_pressure,
-            released_pressure: self.released_pressure + self.releasing_pressure,
+    #[inline]
+    fn move_to(&self, next_valve: ValveId, who: usize) -> Minute {
+        let mut next_minute = self.clone();
+        next_minute.current_valve[who] = next_valve;
+        next_minute.last_valve[who] = self.current_valve[who];
+        if !next_minute.heading_to[who].is_empty() {
+            next_minute.heading_to[who].remove(0);
         }
+        next_minute.open_valves = Vec::new();
+        next_minute.releasing_pressure = 0;
+        next_minute
     }
 }
 
-pub fn most_released_pressure<'i>(input: &'i str) -> usize {
+#[inline]
+pub fn most_released_pressure(input: &'static str) -> usize {
     let cave = Cave::from(input);
     let minute_0 = Minute {
-        me_current_valve: "AA".to_string(),
-        elephant_current_valve: "AA".to_string(),
+        current_valve: ["AA", "AA"],
+        // backtrack: "AA, AA".to_string(),
         ..Default::default()
     };
 
     dfs_reach(minute_0, |minute| minute.successors(&cave))
-        .filter(|minute| minute.minute == 30)
+        .filter(|minute| minute.minute == 26)
         .max_by_key(|minute| minute.released_pressure)
+        // .map(|minute| {
+        //     println!("{}", minute.backtrack);
+        //     minute
+        // })
         .unwrap()
         .released_pressure
 }
 
 fn main() {
-    // Does work with the smarter algorithm...
     println!("{}", most_released_pressure(input::USER));
 }
 
 #[test]
 fn test_example() {
-    // Fails with the smarter algorithm...
-    assert_eq!(1651, most_released_pressure(input::EXAMPLE));
+    assert_eq!(1707, most_released_pressure(input::EXAMPLE));
 }

@@ -1,5 +1,5 @@
-use pathfinding::prelude::*;
 use day16::*;
+use pathfinding::prelude::*;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct Minute {
@@ -21,7 +21,8 @@ impl Minute {
         if self.open_valves.len() == cave.destinations_with_flow.keys().len() - 1 {
             return vec![Minute {
                 minute: 30,
-                released_pressure: self.released_pressure + (30 - self.minute) * self.releasing_pressure,
+                released_pressure: self.released_pressure
+                    + (30 - self.minute) * self.releasing_pressure,
                 ..self.clone()
             }];
         }
@@ -30,15 +31,16 @@ impl Minute {
         if !self.open_valves.contains(&self.current_valve) && flow > &0 {
             successors.push(self.open_valve(flow));
         }
-        for (_, path) in cave
+        for path in cave
             .destinations_with_flow
             .get(&self.current_valve)
             .unwrap()
+            .values()
         {
             if path[0] != self.last_valve {
                 let mut successor = self.clone();
                 for destination in path.iter() {
-                    successor = successor.move_to(destination.clone());
+                    successor = successor.move_to(destination);
                     if successor.minute == 30 {
                         break;
                     }
