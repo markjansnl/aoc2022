@@ -1,4 +1,4 @@
-use day17::{input, height_after_block};
+use day17::{height_after_block, input};
 
 fn main() {
     println!("{}", height_after_block(2022, input::USER));
