@@ -52,7 +52,7 @@ impl From<&'static str> for Cave {
                             .get(valve_id)
                             .unwrap()
                             .iter()
-                            .cloned()
+                            .copied()
                             .map(|destination| (destination, 1))
                     },
                     |valve_id| valve_id == destination,
@@ -62,15 +62,14 @@ impl From<&'static str> for Cave {
                 path.remove(0);
                 if path.iter().take(path.len() - 1).find(|p| cave.flow.get(*p).unwrap() > &0).is_none() {
                     cave.destinations_with_flow
-                        .entry(valve_id.clone())
+                        .entry(valve_id)
                         .and_modify(|destinations_with_flow| {
-                            destinations_with_flow.insert(destination.clone(), path.clone());
+                            destinations_with_flow.insert(destination, path.clone());
                         })
                         .or_insert([(destination.clone(), path)].into_iter().collect());
                 }
             }
         }
-        println!("{cave:#?}");
         cave
     }
 }

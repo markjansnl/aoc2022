@@ -9,16 +9,11 @@ pub struct Minute {
     open_valves: Vec<ValveId>,
     releasing_pressure: Flow,
     released_pressure: Flow,
-    // backtrack: String,
 }
 
 impl Minute {
     #[inline]
     pub fn successors(&self, cave: &Cave) -> Vec<Minute> {
-        // if self.backtrack.as_str() == "AA,DD,DD,CC,BB,BB,AA,II,JJ,JJ,II,AA,DD,EE,FF,GG,HH,HH,GG,FF,EE,EE,DD,CC,CC" {
-        //     let a = 1;
-        // }
-
         let mut successors = Vec::new();
         if self.minute == 30 {
             return successors;
@@ -56,8 +51,8 @@ impl Minute {
 
     #[inline]
     fn open_valve(&self, flow: &Flow) -> Minute {
-        let mut next_minute = self.move_to(self.current_valve.clone());
-        next_minute.open_valves.push(self.current_valve.clone());
+        let mut next_minute = self.move_to(self.current_valve);
+        next_minute.open_valves.push(self.current_valve);
         next_minute.releasing_pressure += flow;
         next_minute
     }
@@ -66,12 +61,11 @@ impl Minute {
     fn move_to(&self, next_valve: ValveId) -> Minute {
         Self {
             minute: self.minute + 1,
-            current_valve: next_valve.clone(),
-            last_valve: self.current_valve.clone(),
+            current_valve: next_valve,
+            last_valve: self.current_valve,
             open_valves: self.open_valves.clone(),
             releasing_pressure: self.releasing_pressure,
             released_pressure: self.released_pressure + self.releasing_pressure,
-            // backtrack: format!("{},{}", self.backtrack, next_valve),
         }
     }
 }
@@ -81,25 +75,21 @@ pub fn most_released_pressure(input: &'static str) -> usize {
     let cave = Cave::from(input);
     let minute_0 = Minute {
         current_valve: "AA",
-        // backtrack: "AA".to_string(),
         ..Default::default()
     };
 
     dfs_reach(minute_0, |minute| minute.successors(&cave))
         .filter(|minute| minute.minute == 30)
         .max_by_key(|minute| minute.released_pressure)
-        // .map(|minute| dbg!(minute))
         .unwrap()
         .released_pressure
 }
 
 fn main() {
-    // Does work with the smarter algorithm...
     println!("{}", most_released_pressure(input::USER));
 }
 
 #[test]
 fn test_example() {
-    // Fails with the smarter algorithm...
     assert_eq!(1651, most_released_pressure(input::EXAMPLE));
 }
