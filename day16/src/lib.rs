@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 pub mod input;
 
-pub type ValveId = String;
+pub type ValveId = &'static str;
 pub type Flow = usize;
 
 #[derive(Debug, Default)]
@@ -13,8 +13,8 @@ pub struct Cave {
     pub destinations_with_flow: HashMap<ValveId, HashMap<ValveId, Vec<ValveId>>>,
 }
 
-impl From<&str> for Cave {
-    fn from(input: &str) -> Self {
+impl From<&'static str> for Cave {
+    fn from(input: &'static str) -> Self {
         let mut cave = Self::default();
         for line in input.lines() {
             let (valve_str, destinations_str) = line
@@ -22,16 +22,15 @@ impl From<&str> for Cave {
                 .or(line.split_once(" valves "))
                 .unwrap();
             let mut valve_splits = valve_str.split(&[' ', '=', ';'][..]);
-            let valve_id = valve_splits.nth(1).unwrap().to_string();
+            let valve_id = valve_splits.nth(1).unwrap();
             cave.flow.insert(
-                valve_id.clone(),
+                valve_id,
                 valve_splits.nth(3).unwrap().parse().unwrap(),
             );
             cave.destinations.insert(
-                valve_id.clone(),
+                valve_id,
                 destinations_str
                     .split(", ")
-                    .map(ToString::to_string)
                     .collect(),
             );
         }
@@ -39,7 +38,7 @@ impl From<&str> for Cave {
         for (valve_id, _) in cave
             .flow
             .iter()
-            .filter(|(valve_id, flow)| valve_id.as_str() == "AA" || flow > &&0)
+            .filter(|(valve_id, flow)| **valve_id == "AA" || flow > &&0)
         {
             for (destination, _) in cave
                 .flow
