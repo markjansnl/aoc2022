@@ -1,6 +1,6 @@
 use day16::*;
 use itertools::Itertools;
-use pathfinding::prelude::*;
+use rayon::prelude::*;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct Minute {
@@ -43,7 +43,7 @@ impl Minute {
                 if let Some(me_opened_valve) = me.open_valves.first() {
                     if let Some(elephant_opened_valve) = elephant.open_valves.first() {
                         if me_opened_valve == elephant_opened_valve {
-                            return None
+                            return None;
                         }
                         open_valves.push(*elephant_opened_valve);
                     }
@@ -51,7 +51,7 @@ impl Minute {
                 } else if let Some(elephant_opened_valve) = elephant.open_valves.first() {
                     open_valves.push(*elephant_opened_valve);
                 }
-                
+
                 Some(Minute {
                     minute: self.minute + 1,
                     current_valve: [me.current_valve[ME], elephant.current_valve[ELEPHANT]],
@@ -131,15 +131,32 @@ pub fn most_released_pressure(input: &'static str) -> usize {
         ..Default::default()
     };
 
-    dfs_reach(minute_0, |minute| minute.successors(&cave))
-        .filter(|minute| minute.minute == 26)
-        .max_by_key(|minute| minute.released_pressure)
-        // .map(|minute| {
-        //     println!("{}", minute.backtrack);
-        //     minute
-        // })
-        .unwrap()
-        .released_pressure
+    // dfs_reach(minute_0, |minute| minute.successors(&cave))
+    //     .filter(|minute| minute.minute == 26)
+    //     .max_by_key(|minute| minute.released_pressure)
+    //     // .map(|minute| {
+    //     //     println!("{}", minute.backtrack);
+    //     //     minute
+    //     // })
+    //     .unwrap()
+    //     .released_pressure
+
+    recursive_dfs(minute_0, &cave)
+}
+
+fn recursive_dfs(start: Minute, cave: &Cave) -> usize {
+    start
+        .successors(cave)
+        .into_par_iter()
+        .map(|successor| {
+            if successor.minute == 26 {
+                successor.released_pressure
+            } else {
+                recursive_dfs(successor, cave)
+            }
+        })
+        .max()
+        .unwrap_or(0)
 }
 
 fn main() {
