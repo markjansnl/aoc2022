@@ -6,12 +6,16 @@ fn grove_coordinates(input: &str) -> isize {
     let sequence: Vec<isize> = input.lines().map(|line| line.parse::<isize>().unwrap() * 811589153).collect();
     let mut mixed = sequence.clone();
 
+    let mut map: HashMap<isize, (Vec<usize>, usize)> = HashMap::new();
+    for (index, number) in mixed.iter().copied().enumerate() {
+        map.entry(number)
+            .and_modify(|number_vec| number_vec.0.push(index))
+            .or_insert((vec![index], 0));
+    }
+
     for _round in 0..10 {
-        let mut map: HashMap<isize, (Vec<usize>, usize)> = HashMap::new();
-        for (index, number) in sequence.iter().copied().enumerate() {
-            map.entry(number)
-                .and_modify(|number_vec| number_vec.0.push(index))
-                .or_insert((vec![index], 0));
+        for (_, current) in map.values_mut() {
+            *current = 0;
         }
 
         for number in sequence.iter() {
