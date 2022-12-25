@@ -5,9 +5,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("day25");
     // group.sample_size(10);
 
-    group.bench_function("part1", |b| {
-        b.iter(|| sum(black_box(input::USER)))
-    });
+    group.bench_function("part1", |b| b.iter(|| sum(black_box(input::USER))));
 
     group.finish();
 }

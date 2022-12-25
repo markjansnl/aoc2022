@@ -1,4 +1,8 @@
-use std::{fmt, ops::Add, iter::{repeat, Sum}};
+use std::{
+    fmt,
+    iter::{repeat, Sum},
+    ops::Add,
+};
 
 pub mod input;
 
@@ -9,7 +13,7 @@ pub struct SnafuNumber(Vec<Digit>);
 impl From<u8> for Digit {
     #[inline]
     fn from(byte: u8) -> Self {
-        if byte >= b'0' && byte <= b'2' {
+        if (b'0'..=b'2').contains(&byte) {
             Digit(byte as i8 - 48)
         } else if byte == b'-' {
             Digit(-1)
@@ -66,16 +70,29 @@ impl Add for SnafuNumber {
     #[inline]
     fn add(self, rhs: Self) -> Self::Output {
         let digits = self.0.len().max(rhs.0.len());
-        let lhs_iter = self.0.iter().rev().copied().chain(repeat(Digit(0)).take(digits - self.0.len()));
-        let rhs_iter = rhs.0.iter().rev().copied().chain(repeat(Digit(0)).take(digits - rhs.0.len()));
+        let lhs_iter = self
+            .0
+            .iter()
+            .rev()
+            .copied()
+            .chain(repeat(Digit(0)).take(digits - self.0.len()));
+        let rhs_iter = rhs
+            .0
+            .iter()
+            .rev()
+            .copied()
+            .chain(repeat(Digit(0)).take(digits - rhs.0.len()));
 
-        let (carry, mut digits) = lhs_iter.zip(rhs_iter).fold((Digit(0), Vec::new()), |(carry, mut digits), (digit_left, digit_right)| {
-            let (next_carry1, next_digit) = carry + digit_left;
-            let (next_carry2, next_digit) = next_digit + digit_right;
-            digits.insert(0, next_digit);
+        let (carry, mut digits) = lhs_iter.zip(rhs_iter).fold(
+            (Digit(0), Vec::new()),
+            |(carry, mut digits), (digit_left, digit_right)| {
+                let (next_carry1, next_digit) = carry + digit_left;
+                let (next_carry2, next_digit) = next_digit + digit_right;
+                digits.insert(0, next_digit);
 
-            (Digit(next_carry1.0 + next_carry2.0), digits)
-        });
+                (Digit(next_carry1.0 + next_carry2.0), digits)
+            },
+        );
 
         if carry != Digit(0) {
             digits.insert(0, carry);
@@ -103,5 +120,9 @@ impl fmt::Display for SnafuNumber {
 
 #[inline]
 pub fn sum(input: &str) -> String {
-    input.lines().map(|line| SnafuNumber::from(line)).sum::<SnafuNumber>().to_string()
+    input
+        .lines()
+        .map(SnafuNumber::from)
+        .sum::<SnafuNumber>()
+        .to_string()
 }
