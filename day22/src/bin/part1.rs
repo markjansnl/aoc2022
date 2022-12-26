@@ -1,10 +1,10 @@
-use day22::{input, final_password};
+use day22::{input, part1};
 
 fn main() {
-    println!("{}", final_password(input::USER));
+    println!("{}", part1(input::USER));
 }
 
 #[test]
 fn test_example() {
-    assert_eq!(6032, final_password(input::EXAMPLE));
+    assert_eq!(6032, part1(input::EXAMPLE));
 }
