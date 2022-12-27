@@ -1,6 +1,6 @@
 #![feature(hash_drain_filter)]
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub mod input;
 
@@ -10,8 +10,7 @@ pub struct Position {
     y: isize,
 }
 
-#[derive(Clone, Default)]
-pub struct Grove(HashMap<Position, Vec<Position>>);
+pub struct Grove(HashSet<Position>);
 
 pub struct Neighbours {
     nw: bool,
@@ -30,44 +29,44 @@ impl From<&str> for Grove {
             input
                 .lines()
                 .enumerate()
-                .map(|(y, line)| {
+                .flat_map(|(y, line)| {
                     line.chars().enumerate().filter_map(move |(x, c)| {
-                        (c == '#').then_some((
-                            Position {
-                                x: x as isize,
-                                y: y as isize,
-                            },
-                            Vec::new(),
-                        ))
+                        (c == '#').then_some(Position {
+                            x: x as isize,
+                            y: y as isize,
+                        })
                     })
                 })
-                .flatten()
                 .collect(),
         )
     }
 }
 
 impl Grove {
-    pub fn round(&mut self, start_rule: u8) {
-        let mut grove: HashMap<Position, Vec<Position>> = HashMap::new();
-        for position in self.0.keys().copied() {
+    pub fn round(&mut self, start_rule: u8) -> bool {
+        let mut next: HashMap<Position, Vec<Position>> = HashMap::new();
+        for position in self.0.iter().copied() {
             let next_position = self.next_position(position, start_rule);
-            grove
-                .entry(next_position)
+            next.entry(next_position)
                 .and_modify(|vec| vec.push(position))
-                .or_insert(vec![position]);
+                .or_insert_with(|| vec![position]);
         }
 
-        let reset_positions = grove
+        let reset_positions = next
             .drain_filter(|_, vec| vec.len() > 1)
-            .map(|(_, vec)| vec.into_iter())
-            .flatten()
+            .flat_map(|(_, vec)| vec.into_iter())
             .collect::<Vec<_>>();
         for position in reset_positions {
-            grove.insert(position, Vec::new());
+            next.insert(position, Vec::new());
         }
 
-        self.0 = grove;
+        let next_set = next.into_keys().collect();
+        if next_set == self.0 {
+            true
+        } else {
+            self.0 = next_set;
+            false
+        }
     }
 
     fn next_position(&self, position: Position, start_rule: u8) -> Position {
@@ -95,21 +94,29 @@ impl Grove {
     fn neighbours(&self, position: Position) -> Neighbours {
         let Position { x, y } = position;
         Neighbours {
-            nw: self.0.contains_key(&Position { x: x - 1, y: y - 1 }),
-            n: self.0.contains_key(&Position { x, y: y - 1 }),
-            ne: self.0.contains_key(&Position { x: x + 1, y: y - 1 }),
-            w: self.0.contains_key(&Position { x: x - 1, y }),
-            e: self.0.contains_key(&Position { x: x + 1, y }),
-            sw: self.0.contains_key(&Position { x: x - 1, y: y + 1 }),
-            s: self.0.contains_key(&Position { x, y: y + 1 }),
-            se: self.0.contains_key(&Position { x: x + 1, y: y + 1 }),
+            nw: self.0.contains(&Position { x: x - 1, y: y - 1 }),
+            n: self.0.contains(&Position { x, y: y - 1 }),
+            ne: self.0.contains(&Position { x: x + 1, y: y - 1 }),
+            w: self.0.contains(&Position { x: x - 1, y }),
+            e: self.0.contains(&Position { x: x + 1, y }),
+            sw: self.0.contains(&Position { x: x - 1, y: y + 1 }),
+            s: self.0.contains(&Position { x, y: y + 1 }),
+            se: self.0.contains(&Position { x: x + 1, y: y + 1 }),
         }
     }
 
     pub fn count_empty_ground(&self) -> usize {
-        let (min_x, max_x, min_y, max_y) = self.0.keys().fold((isize::MAX, isize::MIN, isize::MAX, isize::MIN), |(min_x, max_x, min_y, max_y), position| {
-            (min_x.min(position.x), max_x.max(position.x), min_y.min(position.y), max_y.max(position.y))
-        });
+        let (min_x, max_x, min_y, max_y) = self.0.iter().fold(
+            (isize::MAX, isize::MIN, isize::MAX, isize::MIN),
+            |(min_x, max_x, min_y, max_y), position| {
+                (
+                    min_x.min(position.x),
+                    max_x.max(position.x),
+                    min_y.min(position.y),
+                    max_y.max(position.y),
+                )
+            },
+        );
         (max_x - min_x + 1) as usize * (max_y - min_y + 1) as usize - self.0.len()
     }
 }
@@ -141,4 +148,14 @@ pub fn part1(input: &str) -> usize {
         grove.round(round % 4);
     }
     grove.count_empty_ground()
+}
+
+pub fn part2(input: &str) -> usize {
+    let mut grove = Grove::from(input);
+    for round in 0usize.. {
+        if grove.round((round % 4) as u8) {
+            return round + 1;
+        }
+    }
+    0
 }
