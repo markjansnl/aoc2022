@@ -9,14 +9,21 @@ pub struct Monkies(HashMap<MonkeyName, Yell>);
 
 pub enum Yell {
     SpecificNumber(isize),
-    MathOperation(MonkeyName, Operator, MonkeyName)
+    MathOperation(MonkeyName, Operator, MonkeyName),
 }
 
 impl From<&'static str> for Monkies {
     fn from(input: &'static str) -> Self {
-        Self(input.lines().map(|line| {
-            line.split_once(": ").map(|(name, yell)| (name, yell.into())).unwrap()
-        }).collect())
+        Self(
+            input
+                .lines()
+                .map(|line| {
+                    line.split_once(": ")
+                        .map(|(name, yell)| (name, yell.into()))
+                        .unwrap()
+                })
+                .collect(),
+        )
     }
 }
 
@@ -32,7 +39,7 @@ impl From<&'static str> for Yell {
 }
 
 impl Monkies {
-    pub fn find<'a>(&'a self, name: MonkeyName) -> &'a Yell {
+    pub fn find(&self, name: MonkeyName) -> &'_ Yell {
         self.0.get(name).unwrap()
     }
 
@@ -47,7 +54,7 @@ impl Monkies {
                     "-" => left_yell - right_yell,
                     "*" => left_yell * right_yell,
                     "/" => left_yell / right_yell,
-                    _ => unreachable!("Wrong operator!")
+                    _ => unreachable!("Wrong operator!"),
                 }
             }
         }
@@ -59,7 +66,7 @@ impl Monkies {
         } else {
             match self.find(name) {
                 Yell::SpecificNumber(_) => false,
-                Yell::MathOperation(left, _, right) => self.has_humn(left) || self.has_humn(right)
+                Yell::MathOperation(left, _, right) => self.has_humn(left) || self.has_humn(right),
             }
         }
     }
@@ -69,23 +76,26 @@ impl Monkies {
             result
         } else {
             match self.find(name) {
-                Yell::SpecificNumber(_) => unreachable!("Should be in the yell branch"),
+                Yell::SpecificNumber(_) => unreachable!(),
                 Yell::MathOperation(left, operator, right) => {
-                    let (calc, yell) = if self.has_humn(left) {
-                        if self.has_humn(right) {
-                            panic!("hier gaat het fout! {} {} {} = {}", left, operator, right, result);
+                    let yell = self.yell(right);
+                    if self.has_humn(left) {
+                        match *operator {
+                            "+" => self.calc_humn(left, result - yell),
+                            "-" => self.calc_humn(left, result + yell),
+                            "*" => self.calc_humn(left, result / yell),
+                            "/" => self.calc_humn(left, result * yell),
+                            _ => unreachable!("Wrong operator!"),
                         }
-                        (left, self.yell(right))
                     } else {
-                        (right, self.yell(left))
-                    };
-            
-                    match *operator {
-                        "+" => self.calc_humn(calc, result - yell),
-                        "-" => self.calc_humn(calc, result + yell),
-                        "*" => self.calc_humn(calc, result / yell),
-                        "/" => self.calc_humn(calc, result * yell),
-                        _ => unreachable!("Wrong operator!")
+                        let yell = self.yell(left);
+                        match *operator {
+                            "+" => self.calc_humn(right, result - yell),
+                            "-" => self.calc_humn(right, yell - result),
+                            "*" => self.calc_humn(right, result / yell),
+                            "/" => self.calc_humn(right, yell / result),
+                            _ => unreachable!("Wrong operator!"),
+                        }
                     }
                 }
             }
@@ -114,7 +124,9 @@ pub fn humn_yell(input: &'static str) -> isize {
 #[test]
 fn test_part2() {
     let mut monkies = Monkies::from(input::USER);
-    monkies.0.insert("humn", Yell::SpecificNumber(humn_yell(input::USER)));
+    monkies
+        .0
+        .insert("humn", Yell::SpecificNumber(humn_yell(input::USER)));
     if let Yell::MathOperation(left, _, right) = monkies.find("root") {
         assert_eq!(monkies.yell(left), monkies.yell(right))
     }

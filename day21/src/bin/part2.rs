@@ -1,7 +1,6 @@
 use day21::*;
 
 fn main() {
-    // 6915836165295: too high
     println!("{}", humn_yell(input::USER));
 }
 
