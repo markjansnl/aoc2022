@@ -1,7 +1,7 @@
 #![feature(hash_drain_filter)]
 
 use itertools::Itertools;
-use std::{collections::HashMap, iter::Peekable, str::Chars};
+use std::{collections::HashMap, fmt, iter::Peekable, str::Chars};
 pub mod input;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -34,8 +34,8 @@ pub struct Board {
     lines: Vec<&'static [u8]>,
     path: PathIterator,
     position: Position,
-    direction: Direction,
     edge_redirections: HashMap<(Position, Direction), (Position, Direction)>,
+    walked: Vec<(Position, Direction)>,
 }
 
 impl Position {
@@ -164,8 +164,8 @@ impl From<&'static str> for Board {
             lines,
             path: PathIterator::from(path_str),
             position,
-            direction: Direction::Right,
             edge_redirections: HashMap::new(),
+            walked: Vec::new(),
         }
     }
 }
@@ -181,12 +181,14 @@ impl Board {
                         self.path.wall_hitted();
                     } else {
                         self.position = next_position;
-                        self.direction = next_direction;
+                        self.path.direction = next_direction;
+                        self.walked.insert(0, (next_position, next_direction));
                     }
                 }
-                PathStep::Rotate(direction) => self.direction = direction,
+                PathStep::Rotate(direction) => self.path.direction = direction,
             }
         }
+        self.walked.insert(0, (self.position, self.path.direction));
     }
 
     #[inline]
@@ -203,30 +205,38 @@ impl Board {
 
     #[inline]
     fn next_position(&self) -> (Position, Direction) {
-        let mut next_position = self.position.next(&self.direction);
+        let mut next_position = self.position.next(&self.path.direction);
         if self.get(&next_position) != b' ' {
-            return (next_position, self.direction);
+            return (next_position, self.path.direction);
         }
 
-        if let Some((redirected_position, redirected_direction)) =
-            self.edge_redirections.get(&(next_position, self.direction))
+        if next_position == (Position { x: 13, y: 6 }) {
+            let _a = 1;
+        }
+
+        if let Some((redirected_position, redirected_direction)) = self
+            .edge_redirections
+            .get(&(next_position, self.path.direction))
         {
             return (*redirected_position, *redirected_direction);
         }
 
         next_position = self.position;
         loop {
-            next_position = next_position.next(&self.direction.opposite());
+            next_position = next_position.next(&self.path.direction.opposite());
             if self.get(&next_position) != b' ' {
                 continue;
             }
-            return (next_position.next(&self.direction), self.direction);
+            return (
+                next_position.next(&self.path.direction),
+                self.path.direction,
+            );
         }
     }
 
     #[inline]
     pub fn final_password(&self) -> usize {
-        self.position.y * 1000 + self.position.x * 4 + self.direction as usize
+        self.position.y * 1000 + self.position.x * 4 + self.path.direction as usize
     }
 
     #[inline]
@@ -250,66 +260,178 @@ impl Board {
             })
             .collect::<HashMap<Position, ([u8; 4], u8)>>();
 
-        let inner_corners = edges.drain_filter(|_, (_, count)| count == &3).collect::<Vec<_>>();
+        let inner_corners = edges
+            .drain_filter(|_, (_, count)| count == &3)
+            .collect::<Vec<_>>();
 
         // For each inner corner, go connect edges until both edges are outer corners
         for (position, (tiles, count)) in inner_corners {
-            println!("{position:?}");
             let mut prev_positions = vec![(position, (tiles, count))];
             let mut edges = edges.clone();
             loop {
                 let mut next_positions = Vec::new();
                 for (prev_position, (prev_tiles, prev_count)) in prev_positions {
-                    let next_directions = Board::next_directions(&prev_tiles, prev_count)
-                        .into_iter()
-                        .map(|next_direction| prev_position.next_n(cube_width, &next_direction))
-                        .filter(|next_position| {
-                            edges.contains_key(next_position)
-                        })
-                        .collect::<Vec<_>>();
-                    for next_position in next_directions {
-                        next_positions.push((next_position, edges.remove(&next_position).unwrap()));
+                    let next_directions =
+                        Board::next_directions(&prev_position, &prev_tiles, prev_count)
+                            .into_iter()
+                            .map(|(next_direction, start_position, map_direction)| {
+                                (
+                                    prev_position.next_n(cube_width, &next_direction),
+                                    next_direction,
+                                    start_position,
+                                    map_direction,
+                                )
+                            })
+                            .filter(|(next_position, _, _, _)| edges.contains_key(next_position))
+                            .collect::<Vec<_>>();
+                    for (next_position, next_direction, start_position, map_direction) in
+                        next_directions
+                    {
+                        next_positions.push((
+                            next_position,
+                            next_direction,
+                            edges.remove(&next_position).unwrap(),
+                            start_position,
+                            map_direction,
+                        ));
                     }
                 }
-                println!("    {next_positions:?}");
-                if next_positions.iter().all(|(_, (_, count))| count == &1) {
+
+                for _ in 0..cube_width {
+                    if next_positions[0].3 == (Position { x: 13, y: 6 }) {
+                        let _a = 1;
+                    }
+                    self.edge_redirections.insert(
+                        (next_positions[0].3, next_positions[0].4),
+                        (
+                            next_positions[1].3.next(&next_positions[1].4.opposite()),
+                            next_positions[1].4.opposite(),
+                        ),
+                    );
+                    self.edge_redirections.insert(
+                        (next_positions[1].3, next_positions[1].4),
+                        (
+                            next_positions[0].3.next(&next_positions[0].4.opposite()),
+                            next_positions[0].4.opposite(),
+                        ),
+                    );
+                    next_positions[0].3 = next_positions[0].3.next(&next_positions[0].1);
+                    next_positions[1].3 = next_positions[1].3.next(&next_positions[1].1);
+                }
+
+                if next_positions
+                    .iter()
+                    .all(|(_, _, (_, count), _, _)| count == &1)
+                {
                     break;
                 }
-                prev_positions = next_positions;
+                prev_positions = next_positions
+                    .into_iter()
+                    .map(|(next_position, _, (tiles, count), _, _)| (next_position, (tiles, count)))
+                    .collect();
             }
         }
     }
 
     #[inline]
-    fn next_directions(tiles: &[u8; 4], count: u8) -> [Direction; 2] {
+    fn next_directions(
+        position: &Position,
+        tiles: &[u8; 4],
+        count: u8,
+    ) -> [(Direction, Position, Direction); 2] {
+        let Position { x, y } = *position;
         use Direction::*;
         if count == 1 {
             if tiles[0] != b' ' {
-                [Up, Left]
+                [
+                    (Up, Position { x: x + 1, y }, Right),
+                    (Left, Position { x, y: y + 1 }, Down),
+                ]
             } else if tiles[1] != b' ' {
-                [Up, Right]
+                [
+                    (Up, Position { x, y }, Left),
+                    (Right, Position { x: x + 1, y: y + 1 }, Down),
+                ]
             } else if tiles[2] != b' ' {
-                [Down, Left]
+                [
+                    (Down, Position { x: x + 1, y: y + 1 }, Right),
+                    (Left, Position { x, y }, Up),
+                ]
             } else {
-                [Down, Right]
+                [
+                    (Down, Position { x, y: y + 1 }, Left),
+                    (Right, Position { x: x + 1, y }, Up),
+                ]
             }
         } else if count == 2 {
             if tiles[0] == tiles[1] {
-                [Left, Right]
+                if tiles[0] == b' ' {
+                    [
+                        (Left, Position { x, y }, Up),
+                        (Right, Position { x: x + 1, y }, Up),
+                    ]
+                } else {
+                    [
+                        (Left, Position { x, y: y + 1 }, Down),
+                        (Right, Position { x: x + 1, y: y + 1 }, Down),
+                    ]
+                }
             } else {
-                [Up, Down]
+                if tiles[0] == b' ' {
+                    [
+                        (Up, Position { x, y }, Left),
+                        (Down, Position { x, y: y + 1 }, Left),
+                    ]
+                } else {
+                    [
+                        (Up, Position { x: x + 1, y }, Right),
+                        (Down, Position { x: x + 1, y: y + 1 }, Right),
+                    ]
+                }
             }
         } else {
             if tiles[0] == b' ' {
-                [Up, Left]
+                [(Up, Position { x, y }, Left), (Left, Position { x, y }, Up)]
             } else if tiles[1] == b' ' {
-                [Up, Right]
+                [
+                    (Up, Position { x: x + 1, y }, Right),
+                    (Right, Position { x: x + 1, y }, Up),
+                ]
             } else if tiles[2] == b' ' {
-                [Down, Left]
+                [
+                    (Down, Position { x, y: y + 1 }, Left),
+                    (Left, Position { x, y: y + 1 }, Down),
+                ]
             } else {
-                [Down, Right]
+                [
+                    (Down, Position { x: x + 1, y: y + 1 }, Right),
+                    (Right, Position { x: x + 1, y: y + 1 }, Down),
+                ]
             }
         }
+    }
+}
+
+impl fmt::Debug for Board {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Direction::*;
+        for y in 0..=13 {
+            for x in 0..=17 {
+                if let Some((_, direction)) =
+                    self.walked.iter().find(|(p, _)| p == &Position { x, y })
+                {
+                    match direction {
+                        Right => write!(f, ">")?,
+                        Down => write!(f, "v")?,
+                        Left => write!(f, "<")?,
+                        Up => write!(f, "^")?,
+                    }
+                } else {
+                    write!(f, "{}", self.get(&Position { x, y }) as char)?;
+                }
+            }
+        }
+        Ok(())
     }
 }
 
