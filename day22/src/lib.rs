@@ -91,13 +91,11 @@ impl Iterator for PathIterator {
         if self.steps > 0 {
             self.steps -= 1;
             Some(PathStep::Step)
+        } else if self.parse_rotation() {
+            self.parse_steps();
+            Some(PathStep::Rotate(self.direction))
         } else {
-            if self.parse_rotation() {
-                self.parse_steps();
-                Some(PathStep::Rotate(self.direction))
-            } else {
-                None
-            }
+            None
         }
     }
 }
@@ -200,7 +198,7 @@ impl Board {
                 }
             }
         }
-        return b' ';
+        b' '
     }
 
     #[inline]
@@ -376,38 +374,34 @@ impl Board {
                         (Right, Position { x: x + 1, y: y + 1 }, Down),
                     ]
                 }
+            } else if tiles[0] == b' ' {
+                [
+                    (Up, Position { x, y }, Left),
+                    (Down, Position { x, y: y + 1 }, Left),
+                ]
             } else {
-                if tiles[0] == b' ' {
-                    [
-                        (Up, Position { x, y }, Left),
-                        (Down, Position { x, y: y + 1 }, Left),
-                    ]
-                } else {
-                    [
-                        (Up, Position { x: x + 1, y }, Right),
-                        (Down, Position { x: x + 1, y: y + 1 }, Right),
-                    ]
-                }
-            }
-        } else {
-            if tiles[0] == b' ' {
-                [(Up, Position { x, y }, Left), (Left, Position { x, y }, Up)]
-            } else if tiles[1] == b' ' {
                 [
                     (Up, Position { x: x + 1, y }, Right),
-                    (Right, Position { x: x + 1, y }, Up),
-                ]
-            } else if tiles[2] == b' ' {
-                [
-                    (Down, Position { x, y: y + 1 }, Left),
-                    (Left, Position { x, y: y + 1 }, Down),
-                ]
-            } else {
-                [
                     (Down, Position { x: x + 1, y: y + 1 }, Right),
-                    (Right, Position { x: x + 1, y: y + 1 }, Down),
                 ]
             }
+        } else if tiles[0] == b' ' {
+            [(Up, Position { x, y }, Left), (Left, Position { x, y }, Up)]
+        } else if tiles[1] == b' ' {
+            [
+                (Up, Position { x: x + 1, y }, Right),
+                (Right, Position { x: x + 1, y }, Up),
+            ]
+        } else if tiles[2] == b' ' {
+            [
+                (Down, Position { x, y: y + 1 }, Left),
+                (Left, Position { x, y: y + 1 }, Down),
+            ]
+        } else {
+            [
+                (Down, Position { x: x + 1, y: y + 1 }, Right),
+                (Right, Position { x: x + 1, y: y + 1 }, Down),
+            ]
         }
     }
 }
