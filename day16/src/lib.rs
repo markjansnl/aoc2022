@@ -11,6 +11,7 @@ pub struct Cave {
     pub flow: HashMap<ValveId, Flow>,
     pub destinations: HashMap<ValveId, Vec<ValveId>>,
     pub destinations_with_flow: HashMap<ValveId, HashMap<ValveId, Vec<ValveId>>>,
+    pub all_destinations_with_flow: HashMap<ValveId, HashMap<ValveId, Vec<ValveId>>>,
 }
 
 impl From<&'static str> for Cave {
@@ -64,10 +65,17 @@ impl From<&'static str> for Cave {
                         .and_modify(|destinations_with_flow| {
                             destinations_with_flow.insert(destination, path.clone());
                         })
-                        .or_insert_with(|| [(*destination, path)].into_iter().collect());
+                        .or_insert_with(|| [(*destination, path.clone())].into_iter().collect());
                 }
+                cave.all_destinations_with_flow
+                    .entry(valve_id)
+                    .and_modify(|destinations_with_flow| {
+                        destinations_with_flow.insert(destination, path.clone());
+                    })
+                    .or_insert_with(|| [(*destination, path)].into_iter().collect());
             }
         }
+        // println!("{cave:#?}");
         cave
     }
 }
