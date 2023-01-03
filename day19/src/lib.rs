@@ -1,5 +1,14 @@
 #![feature(iter_array_chunks)]
 
+/*
+ * This runs waayyy too long, so this doesn't work
+ * Looked at reddit how to decrease the problem space, but took me too long to understand
+ * So for this day only I runned the code of somebody else to get the stars.
+ * 
+ * Full credits to:
+ * https://github.com/Crazytieguy/advent-of-code/tree/ae35e9347ee3fd2737f6c1ce291b74186cde11a1/2022/src/bin/day19
+ */
+
 use rayon::prelude::*;
 use std::ops::{AddAssign, Add};
 
